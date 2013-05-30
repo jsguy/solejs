@@ -16,10 +16,16 @@
 	etc, and then at the end use the filter function to reduce the number of results based on s
 	or types, or a combination of both.
 
+	. Development
+	. Unit testing
+	. Plugins
+		- Automatic unit test generation
+	. Production issues resolution and testing
+
 	Licence
 	-------
 
-	Copyright (C) 2012 Mikkel Bergmann
+	Copyright (C) 2013 Mikkel Bergmann
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of
 	this software and associated documentation files (the "Software"), to deal in
@@ -47,27 +53,7 @@
 	http://jsguy.com
 
 */
-
-
-
-
-/*
-
-	WIP: 	Operations are currently destructive, ie: filter, glob, etc... 
-			Need to make these non-destructive, without using too much memory!!!
-
-	TODO:
-
-		. Add ability to add post-tag functions, for example to get a stacktrace, etc...
-
-*/
-
-
-
-
-
-
-var sole = (function (win, ulib) {
+(function (window, ulib, undefined) {
 	/** sole - the soul of console
 	 *
 	 * sole creates a "console like" function that includes "tagging", and easy filtering in console operations.
@@ -79,13 +65,20 @@ var sole = (function (win, ulib) {
 	 * sole allws you to create private instances and features chainability for ease of use
 	 *
 	 * @constructor
+	 * @param {array} args.matches The list of items that sole contains
+	 * @param {object} args.maxLogSize The maximum amount of items that sole keeps, old entries will be removed, default is 3000
+	 * @param {object} args.capture If we capture events, default is true
+	 * @param {object} args.disable If we actually run the events, useful for production, default is true
+	 * @param {object} args.tag Set of tags to associate with sole events, default is []
+	 * @param {object} args.passthough Do we send the events through to the browsers console, default is false
+	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
+	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
 	var sole = function (args) {
 		args = args || {};
-		args.cfg = args.cfg || {};
-		args.matches = args.matches || null;
-		var that = this,
+		var self = this,
 			matches,
+			i,
 			tagList = [],
 			cfg = {
 				//	Ensure we don't use inifnite memory
@@ -96,10 +89,19 @@ var sole = (function (win, ulib) {
 				disable: false,
 				tag: [],
 				passthrough: false,
-				soleOutput: false
-			}
-			hasConsole = !! (win.console),
-			events = new ulib.Pubsub(),
+				permanent: false,
+				cookieName: "solecfg"
+			},
+			hasConsole = !! (window.console),
+
+			//	Custom event core to expose the sole
+			events = new ulib.Pubsub({
+				core: function() {
+					return {
+						sole: self
+					};
+				}
+			}),
 
 			//	Extends an object with any number of other objects
 			extend = function() {
@@ -111,9 +113,8 @@ var sole = (function (win, ulib) {
 				}
 			},
 
-
-			//	Ensures we have a valid tag
-			validate = function (tag) {
+			//	Remove rubbish chars, ensures we have a valid tag
+			cleanseTag = function (tag) {
 				var i, test;
 				//	Remove all non-alpha-numeric and spaces
 				for(i = 0; i < tag.length; i += 1) {
@@ -129,7 +130,7 @@ var sole = (function (win, ulib) {
 				return (str) ? str.replace(reg, "\\$&") : "";
 			},
 
-			//	Add a  to the list of used tags
+			//	Add a tag to the list of used tags
 			addTag = function (tag) {
 				var i, addedTag = false;
 
@@ -138,7 +139,7 @@ var sole = (function (win, ulib) {
 				}
 
 				for(i = 0; i < tag.length; i += 1) {
-					if(! that.hasTag(tag[i])) {
+					if(! self.hasTag(tag[i])) {
 						addedTag = true;
 						tagList[tag[i]] = 0;
 					}
@@ -147,12 +148,28 @@ var sole = (function (win, ulib) {
 				return addedTag;
 			};
 
-		//	Extend cfg
-		extend(cfg, args);
+		self.plugin = new ulib.PluginManager({
+			pubsub: events
+		});
+
+		self.setArg = function(key, value) {
+			args[key] = value;
+		};
+
+		self.getArg = function(key) {
+			return args[key];
+		};
+
+		self.enum = {
+			events: {
+				'tag': 'tag',		// Event for when a tag is added
+				'output': 'output'	// Event for when output for the console is generated
+			}
+		};
 
 		/** Reset internal state of all matches
 		 */
-		this.reset = function () {
+		self.reset = function () {
 			tagList = [];
 			matches = null;
 		};
@@ -160,7 +177,7 @@ var sole = (function (win, ulib) {
 		/** Get the configuration
 		 * @returns {object} Configuration object
 		 */
-		this.getCfg = function() {
+		self.getCfg = function() {
 			return cfg;
 		};
 
@@ -168,7 +185,7 @@ var sole = (function (win, ulib) {
 		 *
 		 * @returns {boolean} True if a tag has been used
 		 */
-		this.hasTag = function (tag) {
+		self.hasTag = function (tag) {
 			var found = false,
 				i;
 			for (i in tagList) { if(tagList.hasOwnProperty(i)) {
@@ -180,20 +197,6 @@ var sole = (function (win, ulib) {
 			return found;
 		};
 
-		/** Available events
-		 *
-		 * @name output
-		 * @event
-		 * @param {function} func Function to execute when the event is triggered
-		 *
-		 * @name add
-		 * @event
-		 * @param {function} func Function to execute when the event is triggered
-		 *
-		 */
-		events.addEventType('output');
-		events.addEventType('add');
-
 		/** Add an event listener for a given type
 		 *
 		 * @param {string} type The name of the event type
@@ -201,7 +204,7 @@ var sole = (function (win, ulib) {
 		 *
 		 * @returns {boolean} True if the event was successfully added
 		 */
-		this.on = function () {
+		self.on = function () {
 			events.on.apply(events, arguments);
 		};
 
@@ -212,7 +215,7 @@ var sole = (function (win, ulib) {
 		 *
 		 * @returns {boolean} True if one or more event(s) were successfully removed
 		 */
-		this.off = function () {
+		self.off = function () {
 			events.off.apply(events, arguments);
 		};
 
@@ -220,7 +223,7 @@ var sole = (function (win, ulib) {
 		 *
 		 * @returns {boolean} True if we should pass output to the console (if available)
 		 */
-		this.passthrough = function (value) {
+		self.passthrough = function (value) {
 			if (value !== undefined) {
 				cfg.passthrough = !! (value);
 			}
@@ -228,23 +231,12 @@ var sole = (function (win, ulib) {
 			//return cfg.passthrough;
 		};
 
-		/** Returns true if we should pass "sole" output to the console (if available), can be used to set the soleOutput cfg value
-		 *
-		 * @returns {boolean} True if we should pass "sole" output to the console (if available)
-		 */
-		this.soleOutput = function(value) {
-			if (value !== undefined) {
-				cfg.soleOutput = !! (value);
-			}
-			return !!(hasConsole && cfg.soleOutput);
-		};
-
 		/** Set the tag that sole will use
 		 *
 		 * @param {string} [Value] The value of the tag - you can pass either a string, (which can be dot seperated), array, or multiple strings
 		 * @returns {array} The value of the tag
 		*/
-		this.tag = function() {
+		self.tag = function() {
 			var i, j, list = [], value;
 			for(i = 0; i < arguments.length; i += 1) {
 				value = arguments[i];
@@ -267,18 +259,22 @@ var sole = (function (win, ulib) {
 			return cfg.tag;
 		};
 
-		this.capture = function(value){
+		self.capture = function(value){
 			if (value !== undefined) {
 				cfg.capture = !! (value);
 			}
 			return cfg.capture;
 		};
 
-		this.disable = function(value) {
+		self.disable = function(value) {
 			if (value !== undefined) {
 				cfg.disable = !! (value);
 			}
 			return cfg.disable;
+		};
+
+		self.enable = function() {
+			self.disable(false);
 		};
 
 		/** Shims console functions from sole
@@ -287,8 +283,8 @@ var sole = (function (win, ulib) {
 		 * @param {array|string} tags An array of tags to regsiter with the command
 		 * @param {object} args An array of arguments
 		 */
-		this.shim = function (type, tag, args) {
-			var i, text, out;
+		self.shim = function (type, tag, args) {
+			var i, out;
 
 			matches = matches || [];
 
@@ -297,8 +293,8 @@ var sole = (function (win, ulib) {
 				matches.splice(0,1);
 			}
 
-			//	Validate the tag
-			tag = validate(tag);
+			//	cleanse the tag
+			tag = cleanseTag(tag);
 
 			out = {
 				type: type,
@@ -309,7 +305,7 @@ var sole = (function (win, ulib) {
 			//	Add the tag - we get true if it was added, false if existing
 			if (addTag(tag)) {
 				//	Trigger new  listeners
-				events.trigger("add", tag, out);
+				events.trigger(self.enum.events.tag, tag, out);
 			}
 
 			if(cfg.capture) {
@@ -317,34 +313,23 @@ var sole = (function (win, ulib) {
 			}
 
 			//	Trigger output listeners
-			events.trigger("output", out);
+			events.trigger(self.enum.events.output, out);
 
 			//  Run the shim'd console function
 			//	This is done in the context of console (and rightfully so: http://code.google.com/p/chromium/issues/detail?id=48662)
 			if (this.passthrough()) {
-				win.console[type].apply(win.console, args);
+				window.console[type].apply(window.console, args);
 			}
-
-			//  Run the shim'd console function, output the sole log item
-			if(this.soleOutput()) {
-				text = tag.join('.');
-
-				win.console[type].apply(win.console, [text, args]);
-
-				//win.console[type].apply(win.console, [out]);
-			}
-
 		};
 
 		//	Match and history functionality
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
-		//	TODO: Bug - this IS destructive! Should return a copy...
 		/*
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
 		 */
-		this.filter = function (args) {
+		self.filter = function (args) {
 			var i, j, l, log, result = [],
 				include, oks, okTypes, tags = (args) ? args.tag : [],
 				types = (args) ? args.type : [];
@@ -358,8 +343,6 @@ var sole = (function (win, ulib) {
 			if (!(typeof(types) === 'object' && (types instanceof Array))) {
 				types = (types !== undefined) ? [types] : types;
 			}
-
-			console.log(types, tags);
 
 			//	If we have something to filter on
 			if ((tags && tags.length > 0) || (types && types.length > 0)) {
@@ -407,15 +390,17 @@ var sole = (function (win, ulib) {
 				result = matches;
 			}
 
-			//matches = result;
-
-			//return result;
-			return that.copy(cfg);
+			//	Use copy so we can chain calls
+			return self.copy(cfg, result);
 		};
 
-		//	glob function, ie: "*pax*" matches s of ["something.pax.whatever", "pax", "pax.widget"]
+		//	glob function, ie: "*pax*" matches tags of ["something.pax.whatever", "pax", "pax.widget"]
 		//	TODO: document + examples
-		this.glob = function (globstr) {
+		/** Matches tags by "globbing"
+		 *
+		 * @param {string} globstr The string to match on, eg: "*pax*" will match tags ["something.pax.whatever", "pax", "pax.widget"]
+		 */
+		self.glob = function (globstr) {
 			var str, sepstar = "__STARSEPARATOR__",
 				sepquest = "__QUESTIONSEPARATOR__",
 				reg, i, j, hist, log, newMatches = [];
@@ -430,7 +415,7 @@ var sole = (function (win, ulib) {
 			reg = new RegExp(str);
 
 			//	If matches is null, we haven't matched anything yet
-			hist = matches || that.filter();
+			hist = matches || self.filter();
 
 			for (i = 0; i < hist.length; i += 1) {
 				log = hist[i];
@@ -442,37 +427,110 @@ var sole = (function (win, ulib) {
 				}
 			}
 
-			matches = newMatches;
-
 			//	Use copy so we can chain calls
-			return that.copy(cfg);
+			return self.copy(cfg, newMatches);
 		};
 
 		//	Return matches
-		this.get = function (index) {
+		self.get = function (index) {
 			var entries = (matches) ? matches : [];
 			return (index) ? entries[index] : entries;
 		};
 
 		//	Set the matched entries
-		this.setMatches = function (newMatches) {
+		self.setMatches = function (newMatches) {
 			var i;
 			for (i = 0; i < newMatches.length; i += 1) {
-				that[i] = newMatches[i];
+				self[i] = newMatches[i];
 			}
 			matches = newMatches;
-			that.length = newMatches.length;
+			self.length = newMatches.length;
 		};
 
 		//	We create a new object to return, for chaining
-		this.copy = function (args, entries) {
+		self.copy = function (args, entries) {
 			var ns = new this.constructor(args);
 			ns.setMatches(entries || matches);
 			return ns;
 		};
 
+		//	Initialises the sole functionality, with an optional config
+		self.init = function(config) {
+			if(config) {
+				//	Extend cfg
+				extend(cfg, config);
+			}
+
+			if(cfg.permanent) {
+				//	Set cookie to enable sole
+				ulib.cookie.set(cfg.cookieName, true, {
+					days: 365
+				});
+			} else {
+				//	Remove the cookie
+				ulib.cookie.remove(cfg.cookieName);
+			}
+
+			//	See if we have a cookie
+			if(!!(ulib.cookie.get(cfg.cookieName))) {
+				self.enable();
+			}
+		};
+
+		//	Add in a plugin manually
+		self.addPluginManually = function(type, func) {
+			//	Add any plugins
+			// if(sole.pluginList && sole.pluginList.length > 0) {
+			// 	for(i = 0; i < sole.pluginList.length; i += 1) {
+			// 		self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
+			// 	}
+			// }
+			self.plugin.add(type, func);
+		};
+
+		//	Allow old version of Sole to be used instead
+		self.noConflict = function(deep) {
+			//	Instance
+			if( _globalSole && window.sole !== _globalSole ) {
+				window.sole = _globalSole;
+			}
+
+			//	Constructor
+			if( deep && _Sole && window.Sole !== _Sole ) {
+				window.Sole = _Sole;
+			}
+
+			return Sole;
+		};
+
+
+		self.init(args);
+
+		/** Available events
+		 *
+		 * @name output
+		 * @event
+		 * @param {function} func Function to execute when the event is triggered
+		 *
+		 * @name tag
+		 * @event
+		 * @param {function} func Function to execute when the event is triggered
+		 *
+		 */
+		self.plugin.registerEvent({ type: self.enum.events.output});
+		self.plugin.registerEvent({ type: self.enum.events.tag });
+
+		//	Add any registered plugins
+		if(sole.pluginList && sole.pluginList.length > 0) {
+			for(i = 0; i < sole.pluginList.length; i += 1) {
+				self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
+			}
+		}
 	},
-	//	Log functions supported. TODO: Some sort of support for groups
+	globalSole,
+	_globalSole,
+	_Sole,
+	//	Log functions supported.
 	logtagList = ["log", "debug", "info", "warn", "error", "group", "groupCollapsed"],
 	//	Passthrough functions - these don't yet interact with sole, but you can pass them through to console (tested with fireBug 1.7)
 	pttagList = ["clear", "dir", "dirxml", "trace", "groupEnd", "time", "timeEnd", "profile", "profileEnd", "count", "table"],
@@ -483,7 +541,7 @@ var sole = (function (win, ulib) {
 			if(this.disable()) {
 				return false;
 			}
-			var tags = [], caller, funcRE, defaultFuncName = 'anon', funcName = defaultFuncName, addTags = this.getCfg().tag || [], i;
+			var tags = [], caller, funcRE, defaultFuncName = 'anonymous', funcName = defaultFuncName, addTags = this.getCfg().tag || [], i;
 
 			//  We assume a list
 			if (!(typeof(tags) === 'object' && (tags instanceof Array))) {
@@ -494,27 +552,28 @@ var sole = (function (win, ulib) {
 				addTags = [addTags];
 			}
 
-			// Identify function name here, append to s - if anonumous, add as "anon".
-			//	Caller is what function called the function
-			caller = (arguments && arguments.callee && arguments.callee.caller)? arguments.callee.caller.toString(): null;
-
-			//	The below will pull out the name of the function, '' if empty
-			funcRE = /function\s*([\w\-$]+)?\s*\(/i;
-
-			if(caller) {
-				funcName = funcRE.test(caller) ? RegExp.$1: '';
-				if(funcName === '') {
-					funcName = defaultFuncName;
-				}
-			}
-
 			for(i = 0; i < addTags.length; i += 1) {
 				tags.push(addTags[i]);
 			}
 
-			tags.push(funcName);
+			if(this.getArg('useFuncTags')) {
+				// Identify function name here and append to tags - if anonymous, add defaultFuncName.
+				//	Caller is what function called the function
+				caller = (arguments && arguments.callee && arguments.callee.caller)? arguments.callee.caller.toString(): null;
 
-			//this.shim(consoleFunctionType, tags, Array.prototype.slice.call(arguments, 1));
+				//	The below will pull out the name of the function, '' if empty
+				funcRE = /function\s*([\w\-$]+)?\s*\(/i;
+
+				if(caller) {
+					funcName = funcRE.test(caller) ? RegExp.$1: '';
+					if(funcName === '') {
+						funcName = defaultFuncName;
+					}
+				}
+
+				tags.push(funcName);
+			}
+
 			this.shim(consoleFunctionType, tags, arguments);
 		};
 	},
@@ -522,38 +581,46 @@ var sole = (function (win, ulib) {
 	//	Shims pass through functions (these cannot be disabled)
 	ptFunc = function (consoleFunctionType) {
 		return function () {
-			//	TODO: Move this?
 			if (this.passthrough()) {
-				//  Run the console function (in the context of console, and rightfully so: http://code.google.com/p/chromium/issues/detail?id=48662)
-				win.console[consoleFunctionType].apply(win.console, arguments);
+				//  Run the console function (must be in the context of console: http://code.google.com/p/chromium/issues/detail?id=48662)
+				window.console[consoleFunctionType].apply(window.console, arguments);
 			}
 		};
 	},
 	i;
+
+	//	Ability to add plugins 
+	sole.pluginList = [];
+	sole.plugin = function(type, func){
+		sole.pluginList.push({
+			type: type,
+			func: func
+		});
+		globalSole.addPluginManually(type, func);;
+	};
 
 	//  Apply each loggable function
 	for (i = 0; i < logtagList.length; i += 1) {
 		sole.prototype[logtagList[i]] = shimFunc(logtagList[i]);
 	}
 
-	//  Apply each passthrough function; note: This won't work for assert or exception, as they use line numbers
+	//  Apply each passthrough function; note: This won't work for assert or exception, 
+	//	as they use line numbers
 	for (i = 0; i < pttagList.length; i += 1) {
 		sole.prototype[pttagList[i]] = ptFunc(pttagList[i]);
 	}
 
-	//  Assert and exception need the line number, so we cannot generically passthrough those functions
-	//	SOoo.... we shouldn't expose them like this? (Maybe make our own???)
-/*
-	if (outputToConsole()) {
-		sole.assert = window.console.assert;
-		sole.exception = window.console.exception;
-	}
-*/
+	//	Allow for noConflict
+	_Sole = window.Sole;
+	_globalSole = window.sole;
 
-	//	Expose a default global sole object (don't overwrite!)
-	win.Sole = sole;
+	//	Create instance
+	globalSole = new sole();
 
-	//	And return an instance for private use
-	return new sole();
+	//	Expose a default sole instance and constructor
+	window.Sole = sole;
+	window.sole = globalSole;
+
+	return globalSole;
 //	Allow passing in of ulib to sole on the object
-}(this, this.ulib || ((sole)? sole.ulib: {}) || {}));
+}(this, this.ulib || (this.sole)? this.sole.ulib: {}));
