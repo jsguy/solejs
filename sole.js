@@ -54,7 +54,7 @@
 
 */
 (function (window, ulib, undefined) {
-	/** sole - the soul of console
+	/** sole - soul of the console
 	 *
 	 * sole creates a "console like" function that includes "tagging", and easy filtering in console operations.
 	 * This is useful for large JS applications where you want to easily limit the output of the console,
@@ -134,7 +134,7 @@
 			addTag = function (tag) {
 				var i, addedTag = false;
 
-				if (!(typeof(tag) === 'object' && (tag instanceof Array))) {
+				if (!(typeof tag === 'object' && (tag instanceof Array))) {
 					tag = [tag];
 				}
 
@@ -160,7 +160,7 @@
 			return args[key];
 		};
 
-		self.enum = {
+		self.enums = {
 			events: {
 				'tag': 'tag',		// Event for when a tag is added
 				'output': 'output'	// Event for when output for the console is generated
@@ -235,6 +235,7 @@
 		 *
 		 * @param {string} [Value] The value of the tag - you can pass either a string, (which can be dot seperated), array, or multiple strings
 		 * @returns {array} The value of the tag
+		 * @note This method is chainable
 		*/
 		self.tag = function() {
 			var i, j, list = [], value;
@@ -256,7 +257,7 @@
 
 			cfg.tag = list;
 
-			return cfg.tag;
+			return self;
 		};
 
 		self.capture = function(value){
@@ -305,7 +306,7 @@
 			//	Add the tag - we get true if it was added, false if existing
 			if (addTag(tag)) {
 				//	Trigger new  listeners
-				events.trigger(self.enum.events.tag, tag, out);
+				events.trigger(self.enums.events.tag, tag, out);
 			}
 
 			if(cfg.capture) {
@@ -313,7 +314,7 @@
 			}
 
 			//	Trigger output listeners
-			events.trigger(self.enum.events.output, out);
+			events.trigger(self.enums.events.output, out);
 
 			//  Run the shim'd console function
 			//	This is done in the context of console (and rightfully so: http://code.google.com/p/chromium/issues/detail?id=48662)
@@ -322,7 +323,7 @@
 			}
 		};
 
-		//	Match and history functionality
+		//	Match and history functionality on types or tags
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
 		/*
@@ -330,17 +331,29 @@
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
 		 */
 		self.filter = function (args) {
-			var i, j, l, log, result = [],
-				include, oks, okTypes, tags = (args) ? args.tag : [],
-				types = (args) ? args.type : [];
+			args = args || {};
+			var i, j, l, log, result = [], notResult = [],
+				include, okTags, okTypes, tags = args.tag || [],
+				types = args.type || [],
+				not = args.not || false;
+
+			//  We allow a string, and assume it to be a tag
+			if (typeof args === 'string') {
+				tags = [args];
+			}
+
+			//  We allow a list
+			if ((typeof tags === 'object' && (tags instanceof Array))) {
+				tags = args;
+			}
 
 			//  We allow either one tag, or a list
-			if (!(typeof(tags) === 'object' && (tags instanceof Array))) {
+			if (!(typeof tags === 'object' && (tags instanceof Array))) {
 				tags = (tags !== undefined) ? [tags] : tags;
 			}
 
 			//  We allow either one type, or a list
-			if (!(typeof(types) === 'object' && (types instanceof Array))) {
+			if (!(typeof types === 'object' && (types instanceof Array))) {
 				types = (types !== undefined) ? [types] : types;
 			}
 
@@ -350,27 +363,28 @@
 				for (l = 0; l < matches.length; l += 1) {
 					log = matches[l];
 					include = true;
-					oks = true;
+					okTags = true;
 					okTypes = true;
 
 					//	Look at tags
 					if (tags && tags.length > 0) {
-						oks = false;
+						okTags = false;
 						for (i = 0; i < tags.length; i += 1) {
 							for (j = 0; j < log.tags.length; j += 1) {
 								if (tags[i] === log.tags[j]) {
-									oks = true;
+									okTags = true;
 									break;
 								}
 							}
 						}
-						if (!oks) {
+						if (!okTags) {
 							include = false;
 						}
 					}
 					//	Look at types
 					if (types && types.length > 0) {
 						okTypes = false;
+						include = true;
 						for (i = 0; i < types.length; i += 1) {
 							if (types[i] === log.type) {
 								okTypes = true;
@@ -382,8 +396,10 @@
 						}
 					}
 
-					if (include && oks && okTypes) {
+					if (include && (okTags || okTypes)) {
 						result.push(log);
+					} else {
+						notResult.push(log);
 					}
 				}
 			} else {
@@ -391,7 +407,7 @@
 			}
 
 			//	Use copy so we can chain calls
-			return self.copy(cfg, result);
+			return not? self.copy(cfg, notResult): self.copy(cfg, result);
 		};
 
 		//	glob function, ie: "*pax*" matches tags of ["something.pax.whatever", "pax", "pax.widget"]
@@ -403,7 +419,7 @@
 		self.glob = function (globstr) {
 			var str, sepstar = "__STARSEPARATOR__",
 				sepquest = "__QUESTIONSEPARATOR__",
-				reg, i, j, hist, log, newMatches = [];
+				reg, i, j, hist, log, newMatches = [], tagStr;
 			//	Default to matching everything
 			globstr = globstr || "*";
 			//	Save the questions and stars using separators
@@ -414,16 +430,16 @@
 			str = "^" + str.split(sepstar).join(".*").split(sepquest).join(".") + "$";
 			reg = new RegExp(str);
 
-			//	If matches is null, we haven't matched anything yet
-			hist = matches || self.filter();
+			//	Grab the matches
+			hist = self.get();
 
 			for (i = 0; i < hist.length; i += 1) {
 				log = hist[i];
-				for (j = 0; j < log.tags.length; j += 1) {
-					if (reg.test(log.tags[j])) {
-						newMatches.push(log);
-						break;
-					}
+				//	globbing depends on the tags being one string
+				tagStr = log.tags.join(".");
+
+				if (reg.test(tagStr)) {
+					newMatches.push(log);
 				}
 			}
 
@@ -517,8 +533,8 @@
 		 * @param {function} func Function to execute when the event is triggered
 		 *
 		 */
-		self.plugin.registerEvent({ type: self.enum.events.output});
-		self.plugin.registerEvent({ type: self.enum.events.tag });
+		self.plugin.registerEvent({ type: self.enums.events.output});
+		self.plugin.registerEvent({ type: self.enums.events.tag });
 
 		//	Add any registered plugins
 		if(sole.pluginList && sole.pluginList.length > 0) {
@@ -544,11 +560,11 @@
 			var tags = [], caller, funcRE, defaultFuncName = 'anonymous', funcName = defaultFuncName, addTags = this.getCfg().tag || [], i;
 
 			//  We assume a list
-			if (!(typeof(tags) === 'object' && (tags instanceof Array))) {
+			if (!(typeof tags === 'object' && (tags instanceof Array))) {
 				tags = [tags];
 			}
 
-			if (!(typeof(addTags) === 'object' && (addTags instanceof Array))) {
+			if (!(typeof addTags === 'object' && (addTags instanceof Array))) {
 				addTags = [addTags];
 			}
 

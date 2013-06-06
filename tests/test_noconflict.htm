@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="/libs/qunit-master/qunit/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test noConflict</h1>
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+
+		<!-- Load initial sole.js -->
+		<script src="../sole.php"></script>
+		<script>
+			//	Set a value on the object we can test
+			window.sole.branding = "old sole";
+		</script>
+
+		<!-- Include sole.js again -->
+		<script src="../sole.php"></script>
+		<script>
+			test( "noConflict", 2, function() {
+				ok(sole.branding == undefined, "No branding on newly loaded sole");
+
+				//	Reset to old sole
+				sole.noConflict(true);
+
+				ok(sole.branding == "old sole", "Branding on restored sole");
+			});
+	    </script>
+	</body>
+</html>

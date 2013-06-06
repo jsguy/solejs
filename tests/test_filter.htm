@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="/libs/qunit-master/qunit/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test filtering</h1>
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<!-- Load sole.js -->
+		<script src="../sole.php"></script>
+
+		<script>
+			sole.tag("fruit.apple").log("We have an apple");
+			sole.tag("fruit.apple.green").log("We have a green apple");
+			sole.tag("fruit.apple.red").log("We have a red apple");
+			sole.tag("fruit.orange").log("We have an orange");
+			sole.tag("fruit.orange.valencia").warn("We have a valencia orange");
+			sole.tag("fruit.orange.valencia.old").warn("We have an old valencia orange");
+			sole.tag("beverage.orangejuice").error("We have orange juice!");
+	    </script>
+	    
+	    <script>
+			var out = [];
+			out[1] = sole.filter("fruit"),
+			out[2] = sole.filter("apple"),
+			out[3] = sole.filter(["apple", "old"]),
+			out[4] = out[3].filter("old"),
+			out[5] = sole.filter("red");
+			out[6] = sole.filter({ tag: "orange", type: "warn"});
+			out[7] = sole.filter({ tag: "orange", type: "warn", not: true});
+			out[8] = sole.filter({ type: "error" });
+
+			test( "filtering", function() {
+				ok( out[1].length === 6, "Match all fruits" );
+				ok( out[2].length === 3, "Match all apples" );
+				ok( out[3].length === 4, "Match all apples and old items" );
+				ok( out[4].length === 1, "Chain filter old items" );
+				ok( out[5].length === 1, "Match the red apple" );
+				ok( out[6].length === 2, "Match orange warnings" );
+				ok( out[7].length === 5, "Not match orange warnings" );
+				ok( out[8].length === 1, "Match error type" );
+			} );
+	    </script>
+
+
+
+
+	</body>
+</html>
