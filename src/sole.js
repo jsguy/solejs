@@ -3,7 +3,7 @@
 /*
  * @fileOverview This file contains the main sole functionality.
  * @author <a href="mailto:mikkel@jsguy.com">Mikkel Bergmann</a>
- * @version 0.0.7
+ * @version 0.2.7
  */
 /*
 	sole.js - the soul of the console
@@ -639,4 +639,4 @@
 
 	return globalSole;
 //	Allow passing in of ulib to sole on the object
-}(this, this.ulib || (this.sole)? this.sole.ulib: {}));
+}(this, (this.sole)? this.sole.ulib: this.ulib || {}));
