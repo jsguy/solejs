@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
 
 	//	Concatenation file order
-	var concatFiles = ['src/_headsole.js', '../ulib/ulib.pubsub.js', '../ulib/ulib.plugin.js', '../ulib/ulib.cookie.js', 'src/_footsole.js', 'src/sole.js'];
+	var concatFiles = ['src/template/_headsole.js', '../ulib/ulib.pubsub.js', '../ulib/ulib.plugin.js', '../ulib/ulib.cookie.js', 'src/template/_footsole.js', 'src/sole.js'];
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
@@ -12,13 +12,8 @@ module.exports = function(grunt) {
 			dist: {
 				//  We'd prefer to fail on missing files, but at least this will warn: https://github.com/gruntjs/grunt-contrib-concat/issues/15
 				nonull: true,
-				/*
-				src: ['src/_headsole.js', '../ulib/ulib.pubsub.js', '../ulib/ulib.plugin.js', '../ulib/ulib.cookie.js', 'src/_footsole.js', 'src/sole.js'],
-				dest: 'dist/<%= pkg.name %>-<%= pkg.version %>.js',
-				dest: 'dist/<%= pkg.name %>-latest.js'
-				*/
 				files: {
-					'dist/<%= pkg.name %>-<%= pkg.version %>.js': concatFiles,
+					'dist/version/<%= pkg.name %>-<%= pkg.version %>.js': concatFiles,
 					'dist/<%= pkg.name %>-latest.js': concatFiles
 				}
 			}
@@ -32,7 +27,7 @@ module.exports = function(grunt) {
 			},
 			dist: {
 				files: {
-					'dist/<%= pkg.name %>-<%= pkg.version %>.min.js': 'dist/<%= pkg.name %>-<%= pkg.version %>.js',
+					'dist/version/<%= pkg.name %>-<%= pkg.version %>.min.js': 'dist/version/<%= pkg.name %>-<%= pkg.version %>.js',
 					'dist/<%= pkg.name %>-latest.min.js': 'dist/<%= pkg.name %>-latest.js'
 				}
 			}
@@ -40,7 +35,7 @@ module.exports = function(grunt) {
 		jshint: {
 			files: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
 			options: {
-				ignores: ['src/_headsole.js', 'src/_footsole.js', 'test/libs/*.js'],
+				ignores: ['src/template/_headsole.js', 'src/template/_footsole.js', 'test/libs/*.js'],
 				// options here to override JSHint defaults
 				globals: {
 					jQuery: true,
