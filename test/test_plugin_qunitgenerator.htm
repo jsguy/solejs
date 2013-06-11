@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="libs/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="libs/qunit.css">
+		<style>
+			.hide 			{ display: none; }
+		</style>
+	</head>
+	<body>
+		<h1>sole.js test plugin</h1>
+
+		<!-- sole.js including the qunit generator plugin -->
+		<script src="../dist/sole-latest.js"></script>
+		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
+
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<textarea class="hide" id="codein">
+			function Func(args) {
+				//	Private function - we are naming the function here 
+				var multiply = function multiply(num, times) {
+						sole.log(num, times);
+						return num * times;
+					}, value = multiply(args.num, args.times);
+				this.getValue = function getValue() {
+					sole.log(value);
+					return value;
+				};
+				sole.log("Ran multiply", value);
+			};
+
+			//	Code we want to test, including any data
+			var myFunc = new Func({ num: 9, times: 6 });
+		</textarea>
+
+		<script>
+			//	Where we expose the test values
+			var soleTestValues = [],
+				dom = function(id) { return document.getElementById(id); },
+				tempFunc = new Function(dom('codein').value),
+				tempTestFunc, tests;
+
+			//	Use the function name tags
+			sole.setArg('useFuncTags', true);
+
+			//	Run the code and capture values and tests
+			tempFunc.apply(this, []);
+
+			//	Trigger the plugin to collect tests.
+			sole.plugin.trigger('qunitTests', function(testsCreated){
+				tests = testsCreated;
+			}, { testForTags: true } );
+
+			//	Trigger the plugin to collect values.
+			sole.plugin.trigger('qunitValues', function(valuesCreated){
+				soleTestValues = valuesCreated;
+			});
+
+			//	Run the tests.
+			tempTestFunc = new Function(tests.join("\n"));
+			tempTestFunc.apply(this, []);
+	    </script>
+
+	</body>
+</html>
