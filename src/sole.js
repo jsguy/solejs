@@ -8,13 +8,8 @@
 /*
 	sole.js - the soul of the console
 
-	An expansion of JavaScript console(s), to include tagging in console operations, this can
-	be useful for large JS applications, where you want to easily limit the output of the console,
-	and create unit tests.
-
-	NOTE: This does not override the console, it is a separate function, which you can use to log, warn,
-	etc, and then at the end use the filter function to reduce the number of results based on s
-	or types, or a combination of both.
+	sole.js is an extension of the console paradigm that includes tagging,
+	filtering, globbing, plugins and event subscription.
 
 	. Development
 	. Unit testing
@@ -70,7 +65,7 @@
 	 * @param {object} args.capture If we capture events, default is true
 	 * @param {object} args.disable If we actually run the events, useful for production, default is true
 	 * @param {object} args.tag Set of tags to associate with sole events, default is []
-	 * @param {object} args.passthough Do we send the events through to the browsers console, default is false
+	 * @param {object} args.passthrough Do we send the events through to the browsers console, default is false
 	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
 	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
@@ -149,7 +144,13 @@
 			};
 
 		self.plugin = new ulib.PluginManager({
-			pubsub: events
+			pubsub: events,
+			//	Expose self to plugins
+			pluginConfig: {
+				"*": {
+					sole: self
+				}
+			}
 		});
 
 		self.setArg = function(key, value) {

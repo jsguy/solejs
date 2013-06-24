@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="libs/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="libs/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test console override plugin</h1>
+
+		<!-- sole.js including the console override plugin -->
+		<script src="../dist/sole-latest.js"></script>
+		<script src="../plugin/sole.plugin.consoleoverride.js"></script>
+
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<script>
+			test( "sole is console", function() {
+				deepEqual( sole, console, "Ensure sole is console" );
+			});
+
+			test( "console has tag method", function() {
+				ok( typeof console.tag === "function", "Ensure console.tag is a function" );
+			});
+	    </script>
+
+	</body>
+</html>
