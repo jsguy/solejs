@@ -3,8 +3,7 @@
 */
 Sole.plugin("qunitgenerator", function(args) {
 	args =  args || {};
-	var count = 0,
-		self = this,
+	var self = this,
 		testValuesVar = args.testValuesVar || "soleTestValues",
 		//	Use the values to create qUnit tests
 		generateTests = function(values, options) {
@@ -13,7 +12,8 @@ Sole.plugin("qunitgenerator", function(args) {
 			options.testForTags = (typeof options.testForTags !== undefined)? options.testForTags: true;
 			options.testDataStructures = (typeof options.testDataStructures !== undefined)? options.testDataStructures: true;
 
-			var tempTests = [],
+			var count = 0,
+				tempTests = [],
 				tempTest = "", h, i, isStr, test,
 				tests = [],
 				obj,

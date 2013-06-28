@@ -11,14 +11,8 @@
 	sole.js is an extension of the console paradigm that includes tagging,
 	filtering, globbing, plugins and event subscription.
 
-	. Development
-	. Unit testing
-	. Plugins
-		- Automatic unit test generation
-	. Production issues resolution and testing
-
-	Licence
-	-------
+	Licence (MIT)
+	-------------
 
 	Copyright (C) 2013 Mikkel Bergmann
 
@@ -43,9 +37,10 @@
 	Notices, thanks and credits
 	---------------------------
 
+	The following URL's have been useful in creating sole.js:
+
 	http://getfirebug.com/wiki/index.php/Console_API
 	http://simonwillison.net/2006/Jan/20/escape/#p-6
-	http://jsguy.com
 
 */
 (function (window, ulib, undefined) {
@@ -66,6 +61,7 @@
 	 * @param {object} args.disable If we actually run the events, useful for production, default is true
 	 * @param {object} args.tag Set of tags to associate with sole events, default is []
 	 * @param {object} args.passthrough Do we send the events through to the browsers console, default is false
+	 * @param {object} args.useDate Do we add a date object to each log, this is computationally expensive, so default is false
 	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
 	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
@@ -84,6 +80,7 @@
 				disable: false,
 				tag: [],
 				passthrough: false,
+				useDate: false,
 				permanent: false,
 				cookieName: "solecfg"
 			},
@@ -304,6 +301,10 @@
 				args: args
 			};
 
+			if(cfg.useDate) {
+				out.time = (new Date());
+			}
+
 			//	Add the tag - we get true if it was added, false if existing
 			if (addTag(tag)) {
 				//	Trigger new  listeners
@@ -322,6 +323,9 @@
 			if (this.passthrough()) {
 				window.console[type].apply(window.console, args);
 			}
+
+			//	Chainable
+			return self;
 		};
 
 		//	Match and history functionality on types or tags
@@ -464,6 +468,12 @@
 			self.length = newMatches.length;
 		};
 
+		//	Clears matches and tags
+		self.clear = function() {
+			self.setMatches([]);
+			return self.tag([]);
+		};
+
 		//	We create a new object to return, for chaining
 		self.copy = function (args, entries) {
 			var ns = new this.constructor(args);
@@ -591,7 +601,7 @@
 				tags.push(funcName);
 			}
 
-			this.shim(consoleFunctionType, tags, arguments);
+			return this.shim(consoleFunctionType, tags, arguments);
 		};
 	},
 
