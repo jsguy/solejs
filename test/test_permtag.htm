@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="libs/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="libs/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test permanent tag</h1>
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<!-- Load sole.js -->
+		<script src="../dist/sole-latest.js"></script>
+
+		<script>
+			var mySole, out;
+
+			module("Permanent tag", {
+				setup: function() {
+					//	Init custom sole with permanent tag
+					mySole = new Sole({
+						tag: "perm"
+					});
+				},
+				teardown: function() {
+					mySole = null;
+					out = null;
+				}
+			});
+
+			test( "basic permanent tag", function() {
+				mySole.log("test1");
+		    	out = mySole.get();
+				ok( mySole.get()[0].tags[0] === "perm", "Permanent tag" );
+			});
+
+			test( "permanent tag after clear", function() {
+				mySole.clear();
+				mySole.log("test2");
+		    	out = mySole.get();
+				ok( out[0].tags[0] === "perm", "Permanent tag after clear" );
+			});
+
+			test( "permanent tag after other tags", function() {
+				mySole.log("test3");
+				mySole.tag("temp").log("test4");
+		    	out = mySole.get();
+				ok( out[0].tags[0] === "perm", "Permanent tag after other tag" );
+			});
+
+			test( "permanent tag after other tags and clearing", function() {
+				mySole.log("test5");
+				mySole.clear();
+				mySole.tag("temp").log("test6");
+		    	out = mySole.get();
+				ok( out[0].tags[0] === "perm", "Permanent tag after clear and other tag" );
+				ok( out[0].tags[1] === "temp", "Other tag after perm tag and clearing" );
+			});
+	    </script>
+	</body>
+</html>
