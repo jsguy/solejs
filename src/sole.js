@@ -78,6 +78,7 @@
 				capture: true,
 				//	Do we run the shim
 				disable: false,
+				permtag: [],
 				tag: [],
 				passthrough: false,
 				useDate: false,
@@ -123,7 +124,7 @@
 			},
 
 			//	Add a tag to the list of used tags
-			addTag = function (tag) {
+			addTag = function (tag, out) {
 				var i, addedTag = false;
 
 				if (!(typeof tag === 'object' && (tag instanceof Array))) {
@@ -137,6 +138,12 @@
 					}
 					tagList[tag[i]] += 1;
 				}
+
+				if(addedTag) {
+					//	Trigger listeners
+					events.trigger(self.enums.events.tag, tag, out);
+				}
+
 				return addedTag;
 			};
 
@@ -165,11 +172,13 @@
 			}
 		};
 
-		/** Reset internal state of all matches
+		/** Clears matches and tags
+		 * @returns {object} Configuration object
 		 */
-		self.reset = function () {
+		self.clear = function() {
 			tagList = [];
-			matches = null;
+			self.setMatches([]);
+			return self.tag(cfg.permtag);
 		};
 
 		/** Get the configuration
@@ -184,6 +193,22 @@
 		 * @returns {boolean} True if a tag has been used
 		 */
 		self.hasTag = function (tag) {
+			var found = false,
+				i;
+			for (i in tagList) { if(tagList.hasOwnProperty(i)) {
+				if (i === tag) {
+					found = true;
+					break;
+				}
+			}}
+			return found;
+		};
+
+		/** Returns list of tage
+		 *
+		 * @returns {boolean} True if a tag has been used
+		 */
+		self.getTags = function (tag) {
 			var found = false,
 				i;
 			for (i in tagList) { if(tagList.hasOwnProperty(i)) {
@@ -232,11 +257,11 @@
 		/** Set the tag that sole will use
 		 *
 		 * @param {string} [Value] The value of the tag - you can pass either a string, (which can be dot seperated), array, or multiple strings
-		 * @returns {array} The value of the tag
+		 * @returns {Sole} The sole instance
 		 * @note This method is chainable
 		*/
 		self.tag = function() {
-			var i, j, list = [], value;
+			var i, j, tmpList = [], hasTag, list = [], value;
 			for(i = 0; i < arguments.length; i += 1) {
 				value = arguments[i];
 				if (value !== undefined) {
@@ -245,15 +270,37 @@
 					}
 					if (value instanceof Array) {
 						for(j = 0; j < value.length; j += 1) {
-							list.push(value[j]);
+							tmpList.push(value[j]);
 						}
 					} else {
-						list.push(value);
+						tmpList.push(value);
 					}
 				}
 			}
 
+			//	Add perm tags first
+			for(i = 0; i < cfg.permtag.length; i += 1) {
+				list.push(cfg.permtag[i]);
+			}
+
+			//	Add tmp tags, as long as they are not in perm tags
+			for(i = 0; i < tmpList.length; i += 1) {
+				hasTag = false;
+				for(j = 0; j < list.length; j += 1) {
+					if(list[j] == tmpList[i]) {
+						hasTag = true;
+						break;
+					}
+				}
+				if(!hasTag) {
+					list.push(tmpList[i]);
+				}
+			}
+
 			cfg.tag = list;
+
+			//	Fire any add tag events, etc...
+			addTag(cfg.tag);
 
 			return self;
 		};
@@ -305,15 +352,15 @@
 				out.time = (new Date());
 			}
 
-			//	Add the tag - we get true if it was added, false if existing
-			if (addTag(tag)) {
-				//	Trigger new  listeners
-				events.trigger(self.enums.events.tag, tag, out);
-			}
+			//	Add the tag
+			addTag(tag, out);
 
 			if(cfg.capture) {
 				matches.push(out);
 			}
+
+			//	Set matches here
+			self.setMatches(matches);
 
 			//	Trigger output listeners
 			events.trigger(self.enums.events.output, out);
@@ -331,6 +378,7 @@
 		//	Match and history functionality on types or tags
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
+		//	TODO: Ability to pass in a function to examine the 
 		/*
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
@@ -461,17 +509,18 @@
 		//	Set the matched entries
 		self.setMatches = function (newMatches) {
 			var i;
+
+			//	Remove old matches
+			for (i = 0; i < matches.length; i += 1) {
+				delete self[i];
+			}
+
+			//	Add new matches
 			for (i = 0; i < newMatches.length; i += 1) {
 				self[i] = newMatches[i];
 			}
 			matches = newMatches;
 			self.length = newMatches.length;
-		};
-
-		//	Clears matches and tags
-		self.clear = function() {
-			self.setMatches([]);
-			return self.tag([]);
 		};
 
 		//	We create a new object to return, for chaining
@@ -483,13 +532,22 @@
 
 		//	Initialises the sole functionality, with an optional config
 		self.init = function(config) {
+			//	Extend cfg
 			if(config) {
-				//	Extend cfg
 				extend(cfg, config);
 			}
 
+			//	Capture tag passed in as permanent, even after clear
+			if(config.tag) {
+				cfg.permtag = config.tag;
+				//  Always a list
+				if (!(typeof cfg.permtag === 'object' && (cfg.permtag instanceof Array))) {
+					cfg.permtag = [cfg.permtag];
+				}
+			}
+
+			//	Set cookie to enable sole
 			if(cfg.permanent) {
-				//	Set cookie to enable sole
 				ulib.cookie.set(cfg.cookieName, true, {
 					days: 365
 				});
@@ -501,6 +559,11 @@
 			//	See if we have a cookie
 			if(!!(ulib.cookie.get(cfg.cookieName))) {
 				self.enable();
+			}
+
+			//	Setup matches if passed in
+			if(cfg.matches) {
+				self.setMatches(cfg.matches);
 			}
 		};
 

@@ -570,7 +570,19 @@ ulib = ulib || {};
 			},
 
 			setupPlugin = function (plugin, config) {
+				var ci, pc = pluginConfig["*"];
 				config = (config !== undefined)? config: pluginConfig[plugin.name];
+
+				//	Add properties from generic config if available
+				if(pc) {
+					config = config || {};
+					for(c in pc) {if(pc.hasOwnProperty(c)) {
+						if(!config.hasOwnProperty(c)) {
+							config[c] = pc[c];
+						}
+					}}
+				}
+
 				//  Use apply to expose core
 				plugin.obj.apply(core({
 						name: plugin.name
@@ -580,7 +592,7 @@ ulib = ulib || {};
 				);
 			};
 
-		//	Expose the event, add and trigger methods
+		//	Expose the registerEvent, add and trigger methods
 		this.registerEvent = registerEvent;
 		this.add = addPlugin;
 		this.trigger = expose(pubsub.trigger, pubsub);
@@ -718,22 +730,11 @@ ulib = ulib || {};
 /*
 	sole.js - the soul of the console
 
-	An expansion of JavaScript console(s), to include tagging in console operations, this can
-	be useful for large JS applications, where you want to easily limit the output of the console,
-	and create unit tests.
+	sole.js is an extension of the console paradigm that includes tagging,
+	filtering, globbing, plugins and event subscription.
 
-	NOTE: This does not override the console, it is a separate function, which you can use to log, warn,
-	etc, and then at the end use the filter function to reduce the number of results based on s
-	or types, or a combination of both.
-
-	. Development
-	. Unit testing
-	. Plugins
-		- Automatic unit test generation
-	. Production issues resolution and testing
-
-	Licence
-	-------
+	Licence (MIT)
+	-------------
 
 	Copyright (C) 2013 Mikkel Bergmann
 
@@ -758,9 +759,10 @@ ulib = ulib || {};
 	Notices, thanks and credits
 	---------------------------
 
+	The following URL's have been useful in creating sole.js:
+
 	http://getfirebug.com/wiki/index.php/Console_API
 	http://simonwillison.net/2006/Jan/20/escape/#p-6
-	http://jsguy.com
 
 */
 (function (window, ulib, undefined) {
@@ -780,7 +782,8 @@ ulib = ulib || {};
 	 * @param {object} args.capture If we capture events, default is true
 	 * @param {object} args.disable If we actually run the events, useful for production, default is true
 	 * @param {object} args.tag Set of tags to associate with sole events, default is []
-	 * @param {object} args.passthough Do we send the events through to the browsers console, default is false
+	 * @param {object} args.passthrough Do we send the events through to the browsers console, default is false
+	 * @param {object} args.useDate Do we add a date object to each log, this is computationally expensive, so default is false
 	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
 	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
@@ -797,8 +800,10 @@ ulib = ulib || {};
 				capture: true,
 				//	Do we run the shim
 				disable: false,
+				permtag: [],
 				tag: [],
 				passthrough: false,
+				useDate: false,
 				permanent: false,
 				cookieName: "solecfg"
 			},
@@ -841,7 +846,7 @@ ulib = ulib || {};
 			},
 
 			//	Add a tag to the list of used tags
-			addTag = function (tag) {
+			addTag = function (tag, out) {
 				var i, addedTag = false;
 
 				if (!(typeof tag === 'object' && (tag instanceof Array))) {
@@ -855,11 +860,24 @@ ulib = ulib || {};
 					}
 					tagList[tag[i]] += 1;
 				}
+
+
+				if(addedTag) {
+					//	Trigger listeners
+					events.trigger(self.enums.events.tag, tag, out);
+				}
+
 				return addedTag;
 			};
 
 		self.plugin = new ulib.PluginManager({
-			pubsub: events
+			pubsub: events,
+			//	Expose self to plugins
+			pluginConfig: {
+				"*": {
+					sole: self
+				}
+			}
 		});
 
 		self.setArg = function(key, value) {
@@ -896,6 +914,22 @@ ulib = ulib || {};
 		 * @returns {boolean} True if a tag has been used
 		 */
 		self.hasTag = function (tag) {
+			var found = false,
+				i;
+			for (i in tagList) { if(tagList.hasOwnProperty(i)) {
+				if (i === tag) {
+					found = true;
+					break;
+				}
+			}}
+			return found;
+		};
+
+		/** Returns list of tage
+		 *
+		 * @returns {boolean} True if a tag has been used
+		 */
+		self.getTags = function (tag) {
 			var found = false,
 				i;
 			for (i in tagList) { if(tagList.hasOwnProperty(i)) {
@@ -944,11 +978,11 @@ ulib = ulib || {};
 		/** Set the tag that sole will use
 		 *
 		 * @param {string} [Value] The value of the tag - you can pass either a string, (which can be dot seperated), array, or multiple strings
-		 * @returns {array} The value of the tag
+		 * @returns {Sole} The sole instance
 		 * @note This method is chainable
 		*/
 		self.tag = function() {
-			var i, j, list = [], value;
+			var i, j, tmpList = [], hasTag, list = [], value;
 			for(i = 0; i < arguments.length; i += 1) {
 				value = arguments[i];
 				if (value !== undefined) {
@@ -957,15 +991,37 @@ ulib = ulib || {};
 					}
 					if (value instanceof Array) {
 						for(j = 0; j < value.length; j += 1) {
-							list.push(value[j]);
+							tmpList.push(value[j]);
 						}
 					} else {
-						list.push(value);
+						tmpList.push(value);
 					}
 				}
 			}
 
+			//	Add perm tags first
+			for(i = 0; i < cfg.permtag.length; i += 1) {
+				list.push(cfg.permtag[i]);
+			}
+
+			//	Add tmp tags, as long as they are not in perm tags
+			for(i = 0; i < tmpList.length; i += 1) {
+				hasTag = false;
+				for(j = 0; j < list.length; j += 1) {
+					if(list[j] == tmpList[i]) {
+						hasTag = true;
+						break;
+					}
+				}
+				if(!hasTag) {
+					list.push(tmpList[i]);
+				}
+			}
+
 			cfg.tag = list;
+
+			//	Fire any add tag events, etc...
+			addTag(cfg.tag);
 
 			return self;
 		};
@@ -1013,11 +1069,12 @@ ulib = ulib || {};
 				args: args
 			};
 
-			//	Add the tag - we get true if it was added, false if existing
-			if (addTag(tag)) {
-				//	Trigger new  listeners
-				events.trigger(self.enums.events.tag, tag, out);
+			if(cfg.useDate) {
+				out.time = (new Date());
 			}
+
+			//	Add the tag
+			addTag(tag, out);
 
 			if(cfg.capture) {
 				matches.push(out);
@@ -1031,11 +1088,15 @@ ulib = ulib || {};
 			if (this.passthrough()) {
 				window.console[type].apply(window.console, args);
 			}
+
+			//	Chainable
+			return self;
 		};
 
 		//	Match and history functionality on types or tags
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
+		//	TODO: Ability to pass in a function to examine the 
 		/*
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
@@ -1173,6 +1234,12 @@ ulib = ulib || {};
 			self.length = newMatches.length;
 		};
 
+		//	Clears matches and tags
+		self.clear = function() {
+			self.setMatches([]);
+			return self.tag(cfg.permtag);
+		};
+
 		//	We create a new object to return, for chaining
 		self.copy = function (args, entries) {
 			var ns = new this.constructor(args);
@@ -1182,13 +1249,22 @@ ulib = ulib || {};
 
 		//	Initialises the sole functionality, with an optional config
 		self.init = function(config) {
+			//	Extend cfg
 			if(config) {
-				//	Extend cfg
 				extend(cfg, config);
 			}
 
+			//	Capture tag passed in as permanent, even after clear
+			if(config.tag) {
+				cfg.permtag = config.tag;
+				//  Always a list
+				if (!(typeof cfg.permtag === 'object' && (cfg.permtag instanceof Array))) {
+					cfg.permtag = [cfg.permtag];
+				}
+			}
+
+			//	Set cookie to enable sole
 			if(cfg.permanent) {
-				//	Set cookie to enable sole
 				ulib.cookie.set(cfg.cookieName, true, {
 					days: 365
 				});
@@ -1200,6 +1276,11 @@ ulib = ulib || {};
 			//	See if we have a cookie
 			if(!!(ulib.cookie.get(cfg.cookieName))) {
 				self.enable();
+			}
+
+			//	Setup matches if passed in
+			if(cfg.matches) {
+				self.setMatches(cfg.matches);
 			}
 		};
 
@@ -1300,7 +1381,7 @@ ulib = ulib || {};
 				tags.push(funcName);
 			}
 
-			this.shim(consoleFunctionType, tags, arguments);
+			return this.shim(consoleFunctionType, tags, arguments);
 		};
 	},
 
