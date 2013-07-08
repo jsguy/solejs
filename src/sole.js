@@ -511,8 +511,10 @@
 			var i;
 
 			//	Remove old matches
-			for (i = 0; i < matches.length; i += 1) {
-				delete self[i];
+			if(matches) {
+				for (i = 0; i < matches.length; i += 1) {
+					delete self[i];
+				}
 			}
 
 			//	Add new matches
