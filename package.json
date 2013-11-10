@@ -1,8 +1,8 @@
 {
 	"name": "sole",
-	"version": "0.2.8",
+	"version": "0.2.9",
 	"author": "JavaScript guy <mikkel@jsguy.com>",
-	"description": "sole.js - the soul of the console - tag, glob and filter your console messages",
+	"description": "sole.js - the soul of the console - tag, glob, filter and trigger events via console messages",
 	"contributors": [{
 		"name": "Mikkel Bergmann",
 		"email": "mikkel@jsguy.com"
@@ -16,13 +16,16 @@
 	},
 	"keywords": [
 		"console",
+		"filter",
+		"plugins",
+		"events",
 		"tag",
 		"tagging",
-		"filter",
 		"useful",
 		"jsguy"
 	],
 	"devDependencies": {
+		"ulib": "*",
 		"grunt":  "0.4.x",
 		"grunt-cli":  "0.1.9",
 		"grunt-contrib-uglify":  "0.2.x",

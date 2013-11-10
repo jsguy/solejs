@@ -2,22 +2,32 @@ module.exports = function(grunt) {
 
 	//	Concatenation file order
 	var concatFiles = [
-		'src/template/_headsole.js',
-		'../ulib/ulib.pubsub.js',
-		'../ulib/ulib.plugin.js',
-		'../ulib/ulib.cookie.js',
-		'src/template/_footsole.js',
+		'src/template/_head.js',
+		'node_modules/ulib/src/ulib.pubsub.js',
+		'node_modules/ulib/src/ulib.plugin.js',
+		'node_modules/ulib/src/ulib.cookie.js',
+		'src/template/_foot.js',
 		'src/sole.js'];
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
+		//	Create the dist
 		concat: {
-			options: {
-				separator: ';'
+			testbuild: {
+				options: {
+					separator: ';',
+					//  We'd prefer to fail on missing files, but at least this will 
+					//	supposedly warn: https://github.com/gruntjs/grunt-contrib-concat/issues/15
+					nonull: true
+				},
+				files: {
+					'test/build/testbuild.js': concatFiles
+				}
 			},
-			dist: {
-				//  We'd prefer to fail on missing files, but at least this will warn: https://github.com/gruntjs/grunt-contrib-concat/issues/15
-				nonull: true,
+			distbuild: {
+				options: {
+					separator: ';'
+				},
 				files: {
 					'dist/version/<%= pkg.name %>-<%= pkg.version %>.js': concatFiles,
 					'dist/<%= pkg.name %>-latest.js': concatFiles
@@ -41,7 +51,7 @@ module.exports = function(grunt) {
 		jshint: {
 			files: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
 			options: {
-				ignores: ['src/template/_headsole.js', 'src/template/_footsole.js', 'test/libs/*.js'],
+				ignores: ['src/template/_head.js', 'src/template/_foot.js', 'test/libs/*.js', 'test/build/testbuild.js'],
 				// options here to override JSHint defaults
 				globals: {
 					jQuery: true,
@@ -58,7 +68,7 @@ module.exports = function(grunt) {
 		watch: {
 			files: ['<%= jshint.files %>'],
 			//	Just build when watching
-			tasks: ['concat']
+			tasks: ['concat:testbuild']
 		}
 	});
 
@@ -69,5 +79,5 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-concat');
 
 	grunt.registerTask('test', ['jshint', 'qunit']);
-	grunt.registerTask('default', ['jshint', 'qunit', 'concat', 'uglify']);
+	grunt.registerTask('default', ['concat:testbuild', 'jshint', 'qunit', 'concat:distbuild', 'uglify']);
 };

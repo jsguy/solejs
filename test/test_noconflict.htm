@@ -12,14 +12,14 @@
 		<div id="qunit-fixture"></div>
 
 		<!-- Load initial sole.js -->
-		<script src="../dist/sole-latest.js?x=1"></script>
+		<script src="build/testbuild.js?x=1"></script>
 		<script>
 			//	Set a value on the object we can test
 			window.sole.branding = "old sole";
 		</script>
 
 		<!-- Include sole.js again -->
-		<script src="../dist/sole-latest.js?x=2"></script>
+		<script src="build/testbuild.js?x=2"></script>
 		<script>
 			test( "noConflict", 2, function() {
 				ok(sole.branding == undefined, "No branding on newly loaded sole");
