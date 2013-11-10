@@ -1,8 +1,52 @@
 # sole.js
 _the soul of the console_
 
+<!-- TODO: Add CI build -->
 <!--
 [![Build Status](https://secure.travis-ci.org/visionmedia/jade.png)](http://travis-ci.org/visionmedia/jade)
+-->
+
+<!--
+	TODO:
+
+	Features
+		- Trap errors plugin ("error" plugin)
+			. This will essentially do what we wanted okjs to do
+			. Ability to log errors via ajax
+			. Include jQuery support, see the okjs plugin
+
+	Note: For examples, you could use http://cssdeck.com/codecasts
+
+	Examples
+		- Finish Matrix debug
+		- Finish Qunit generation 
+		- Create example of using a mocked test (jasmine?)
+			. Basic test with mocked controller calls - use one of their examples
+			. Show how the same thing works with sole.js
+			. Explain how easy it is to break the jasmine test, (false positive), and why the same sole.js test doesn't fail as easily
+
+		- Create video of debug in Chrome VS a bunch of sole commands
+			. In chrome you can set breakpoints, etc... But that doesn't carry well across dev and production environments, unless you use source maps (which can expose your full source!)
+			. You'd still need to set the breakpoints, even when you do have source maps, so it's not a magic bullet
+			. It's much easier to just use sole.js - it will log from the same parts of the code in both minified and dev code
+
+			The example
+				- Should show a simple ajax request
+				- Failure should be instructure of data
+				- Use sole.js to capture the input and output of the JSON success function
+				- Debug this in Chrome on the live box
+					. Point out the minified code doesn't really help
+					. Show sole.js tagged input/output from the same function
+					. Point out that yes, you need to know exactly where to add sole log commands, and that sole is an addition to debugging, not a replacement
+					. Main point is that there is quite low barrier to entry, as you are most likely already using console.log in much of your development.
+
+				- Debug the same thing on the dev box
+					- Use Source maps to show where the error is from the debug session
+					- Use the captured sole.js input to trigger the same error
+
+	Tests
+		- Trap errors test
+
 -->
 
 sole.js is an extension of the console paradigm that includes tagging, filtering, globbing, plugins and event subscription.

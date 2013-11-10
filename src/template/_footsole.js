@@ -1,1 +1,1 @@
-}(sole.ulib));
+}).call(this.sole);

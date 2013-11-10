@@ -1,726 +1,9 @@
-/* sole.js uses ulib micro library functions, hence the header and footer to encapsulate namespaced ulib */
-var sole = window.sole || {};
-	sole.ulib = {};
-	(function(ulib){
-;/*global window*/
-/*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, newcap: true, immed: true */
-/*
-	ulib - jsguy's standalone micro utilities library
-
-	Copyright (C) 2011 by Mikkel Bergmann
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
-
+/* 	sole.js uses ulib micro library functions, hence the header 
+	and footer to encapsulate namespaced ulib 
 */
-
-/*
-	ulib.pubsub - basic publish-subscribe functionality
-	part of the ulib collection - simple utilities
-
-	ulib.pubsub has:
-
-	1. Both loose and concrete event types
-	2. Ability to filter events by type
-*/
-ulib = ulib || {};
-(function (ulib) {
-	var Pubsub = function (args) {
-
-		var //	List of supported events
-			events = [],
-			triggerErrorHandler = function(){},
-			eventsConfig = {},
-			prevEvent = null,
-			deferredEvents = {},
-			//	Do we enforce the event type to be defined before we can add/listen to it
-			eventTypeCheck = false,
-			//	Do we throw an exception if we try to trigger or listen to an invalid event
-			eventException = false,
-			eventExceptionTypes = {
-				INVALID_TRIGGER: 'InvalidTrigger'
-			},
-			//	Object containing the event listeners
-			eventListeners = {},
-			//	Only return listeners of the specified type
-			getListenersByType = function (type) {
-				var list = [];
-				if (eventListeners.hasOwnProperty(type)) {
-					list = eventListeners[type];
-				}
-				return list;
-			},
-/*
-				The core variable is a function that returns an object with a set of properties (or functions),
-				which each event will be triggered in the context of. For example:
-
-					var settings = { values: {}, config: {} },
-						events = new ulib.Pubsub({ core: function(args) {
-						return {
-							getSetting: function (name) {
-								return settings.values[name];
-							}
-						};
-					} });
-
-				where args is an object { eventName: type }, and type is the type of event being triggered
-
-				This will expose the getSetting function as this.getSetting(...) inside each plugin - be careful that you don't 
-				overwrite any internal functions, when using the plugin manager, for example "get" and "set".
-			*/
-			core = null;
-
-		/** Reset the events and listeners
-		 */
-		this.reset = function () {
-			events = [];
-			eventListeners = {};
-		};
-
-		/** Get the core object
-		 *
-		 * @returns {object} The core object used in this instance of pubsub
-		 */
-		this.getCore = function() {
-			return core;
-		};
-
-		/** Check if we have an event type
-		 *
-		 * @param {string} type The name of the event type
-		 *
-		 * @returns {boolean} True of we have the given event
-		 */
-		this.hasEvent = function (type) {
-			var i;
-			for (i = 0; i < events.length; i += 1) {
-				if (events[i] === type) {
-					return true;
-				}
-			}
-			return false;
-		};
-
-		/** Add an event listener for a given type
-		 *
-		 * @param {string} type The name of the event type
-		 * @param {function} func The function to execute for the given event type
-		 *
-		 * @returns {boolean} True if the event was successfully added
-		 */
-		this.on = function (type, func) {
-			var hasEvent = this.hasEvent(type);
-			if (hasEvent || !eventTypeCheck) {
-				eventListeners[type] = eventListeners[type] || [];
-				eventListeners[type].push(func);
-				if (!hasEvent) {
-					this.addEventType({
-						type: type
-					});
-					return true;
-				}
-			}
-			return false;
-		};
-
-		/** Removes an event listener
-		 *
-		 * @param {string} type The name of the event type
-		 * @param {function} [func] The function to remove - if not specified we remove all listeners for the given event type
-		 *
-		 * @returns {boolean} True if one or more event(s) were successfully removed
-		 */
-		this.off = function (type, func) {
-			var i, success = false;
-			if (this.hasEvent(type) && eventListeners[type]) {
-				for (i = 0; i < eventListeners[type].length; i += 1) {
-					if (func) {
-						//	Remove specific listener
-						if (eventListeners[type][i] === func) {
-							eventListeners[type].splice(i, 1);
-							success = true;
-							break;
-						}
-					} else {
-						//	Remove all
-						eventListeners[type] = [];
-						success = true;
-					}
-				}
-				return success;
-			} else {
-				return false;
-			}
-		};
-
-		/** Trigger a given event, passing an arbitary amount of arguments
-		 *
-		 * @param {string} type The name of the event type
-		 * @param {varies} [arguments] The remainder of the arguments will be passed to the triggered event
-		 * @throws {InvalidTrigger: type} The exception string is "InvalidTrigger: [event type]"
-		 * @returns {boolean} True if one or more event(s) were successfully triggered
-		 */
-		this.trigger = function () {
-			var i, j, list, args = arguments,
-				passArgs = [],
-				type = args[0],
-				c = eventsConfig[type],
-				run = true,
-				runEvent = function (func, args, type) {
-					try {
-						//  Use apply to set the arguments correctly, and content to the core object
-						if (core) {
-							func.apply(core({
-								eventName: type
-							}), args);
-						} else {
-							func.apply(func, args);
-						}
-					} catch(e) {
-						//	Catch undefined errors - you can optionally use triggerErrorHandler to handle the error yourself
-						triggerErrorHandler(e);
-					}
-				},
-				makeDeferredEvent = function (func, type, args, core) {
-					deferredEvents[c.defer].push({
-						func: func,
-						type: type,
-						args: args
-					});
-				};
-
-			for (i = 1; i < args.length; i += 1) {
-				passArgs.push(args[i]);
-			}
-
-			if (this.hasEvent(type)) {
-				list = getListenersByType(type);
-				for (i = 0; i < list.length; i += 1) {
-
-					if (c.once && c.hasRunOnce) {
-						run = false;
-					}
-
-					if (c.nonconsec && prevEvent === type) {
-						run = false;
-					}
-
-					if (c.after && prevEvent !== c.after) {
-						run = false;
-					}
-
-					if (c.defer && prevEvent !== c.defer) {
-						run = false;
-						deferredEvents[c.defer] = deferredEvents[c.defer] || [];
-						makeDeferredEvent(list[i], type, passArgs, core);
-					}
-
-					if (run) {
-						runEvent(list[i], passArgs, type, core);
-						if (c.once) {
-							c.hasRunOnce = true;
-						}
-					}
-
-					// See if we have any deferred events to run
-					if (deferredEvents[type]) {
-						for (j = 0; j < deferredEvents[type].length; j += 1) {
-							runEvent(deferredEvents[type][j].func, deferredEvents[type][j].args, deferredEvents[type][j].type, core);
-						}
-					}
-				}
-
-				//	We record which event was triggered, regardless if it ran
-				prevEvent = type;
-			} else {
-				if (eventException) {
-					throw eventExceptionTypes.INVALID_TRIGGER + ': ' + type;
-				}
-			}
-		};
-
-		//	Add an event type - this makes it available as a listenable event
-/*
-			args:
-				. once - event will only trigger once
-				. nonconsec - event will only run non-consecutively, ie: with some other event in between triggers
-				. after - event will only trigger following a specific other event
-				. defer - event will be deferred till a specific event is fired first
-		*/
-
-		/** Add an event type, making it available as a listenable event
-		 *
-		 * @param {string} type The name of the event type
-		 * @param {boolean} [once] Event will only trigger once
-		 * @param {boolean} [nonconsec] Event will only run non-consecutively, ie: with some other event in between triggers
-		 * @param {string} [after] Name of event type that this event can trigger after
-		 * @param {string} [defer] Name of event type that this event will be deferred till after it has fired
-		 */
-		this.addEventType = function (args) {
-			var c = eventsConfig[args.type] || {};
-			eventsConfig[args.type] = {
-				once: args.once || c.once || false,
-				nonconsec: args.nonconsec || c.nonconsec || false,
-				after: args.after || c.after || null,
-				defer: args.defer || c.defer || null
-			};
-			events.push(args.type);
-		};
-
-		/** Get a list of registered event types
-		 *
-		 * @returns {array} Array of registered event types
-		 */
-		this.getEventTypes = function () {
-			return events;
-		};
-
-		/** Remove a given event type
-		 *
-		 * @param {string} Event type
-		 * @returns {boolean} Returns true of the event type was removed
-		 */
-		this.removeEventType = function (type) {
-			var i;
-			for (i = 0; i < events.length; i += 1) {
-				if (events[i] === type) {
-					events.splice(i, 1);
-					eventsConfig[type] = null;
-					return true;
-				}
-			}
-			return false;
-		};
-
-		if (args) {
-			if (args.core !== undefined) {
-				core = args.core;
-			}
-			if (args.events !== undefined) {
-				events = args.events;
-			}
-			if (args.eventTypeCheck !== undefined) {
-				eventTypeCheck = !! (args.eventTypeCheck);
-			}
-			if (args.eventListeners !== undefined) {
-				eventListeners = args.eventListeners;
-			}
-			if (args.eventException !== undefined) {
-				eventException = args.eventException;
-			}
-			if (args.triggerErrorHandler !== undefined) {
-				triggerErrorHandler = args.triggerErrorHandler;
-			}
-		}
-
-	};
-
-	//	Expose global event object
-	ulib.pubsub = new Pubsub();
-	ulib.Pubsub = Pubsub;
-}(ulib));;/*global window, events*/
-/*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, newcap: true, immed: true */
-/*
-	ulib - jsguy's standalone micro utilities library
-
-	Copyright (C) 2011 by Mikkel Bergmann
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
-
-*/
-ulib = ulib || {};
-(function (ulib) {
-
-	/*
-	 * ulib.plugin - args are:
-	 *
-	 *	config - configuration object, accessible by each plugin via getter and setter methods
-	 * 	pluginConfig - configurations that can be passed to named plugins
-	 *
-	 */
-	var PluginManager = function (args) {
-		args = args || {};
-		//  "Global" config object - exposed to all plugins via get and set functions in the core
-		var i, config = {},
-			pluginConfig = {},
-			//	Do we allow plugins to override
-			pluginOverride = true,
-
-			//	Object of errors that we can trigger
-			pluginErrors = {
-				'PluginAlreadyExists': 'Plugin already exists, set pluginOverride to true to override, plugin name: ',
-				'PluginDoesnotExist': 'Plugin not found',
-				'TriggerError': 'Event could not be triggered in: '
-			},
-
-			triggerPluginErrors = args.triggerPluginErrors || true,
-
-			//	Returns a function that exposes the a function in the given context
-			//	This is handy for namespaced functions - usually you will use the namespace as the context
-			expose = function (func, context) {
-				return function () {
-					func.apply(context, arguments);
-				};
-			},
-
-			//	Handles errors
-			handleError = function(name, info) {
-				if(triggerPluginErrors) {
-					//	If we can notify the console
-					//	TODO: solejs support
-					if(window.console && console.error) {
-						if(pluginErrors.hasOwnProperty(name)) {
-							console.error('ulib ' + name + ' - ' + pluginErrors[name] + ((info)? info: ''));
-						} else {
-							console.error('ulib ' + name + ' - ' + pluginErrors['TriggerError'] + ((info)? info: ''));
-						}
-					}
-				}
-			},
-
-			that = this,
-
-			//  Privelleged functions and data for the event manager - these are all passed to each plugin, so that
-			//	this.FUNCNAME is acessible, ie: core.FUNCNAME is exposed to each plugin
-			core = function (coreArgs) {
-				var obj = {}, i;
-
-				//	Extending ensures that we don't override the core by using 'this' in plugins
-				for (i in coreObj) { if (coreObj.hasOwnProperty(i)) {
-					obj[i] = coreObj[i];
-				}}
-
-				//	Override / add any properties
-				for (i in coreArgs) {if (coreArgs.hasOwnProperty(i)) {
-					obj[i] = coreArgs[i];
-				}}
-
-				//	TODO: This only happens on setup; core is also called in the event manager
-				//	after that, but it is re-evaluated, so we don't have the plugin name anymore ... doh.
-				if(typeof coreArgs.name !== undefined) {
-					obj.pluginName = coreArgs.name;
-				} else {
-					handleError('PluginDoesnotExist', ' name not specified');
-				}
-
-				return obj;
-			},
-
-			pubsub = args.pubsub || new ulib.Pubsub({
-				core: core,
-				eventException: true,
-				triggerErrorHandler: function(e) {
-					handleError('TriggerError', currentPluginName + '\n' + e);
-				}
-			}),
-
-			coreObj = {
-				//	Allows you to expose a function that has the correct context
-				expose: function (func, context) {
-					return expose(func, context);
-				},
-
-				//  This allows you to get global config
-				get: function (name) {
-					return (name) ? config[name] : config;
-				},
-
-				//  This allows you to set global value
-				set: function (name, value) {
-					config[name] = value;
-				},
-
-				//	Listen to events in the events manager
-				on: function(name, func, pluginName) {
-					if(pluginName !== undefined) {
-						currentPluginName = pluginName;
-					}
-					var eventCurrentPluginName = currentPluginName,
-						//	Create an event we can bind and register
-						myEventFunc = function() {
-							var pubsubCore = pubsub.getCore();
-							currentPluginName = eventCurrentPluginName;
-							func.apply((pubsubCore? pubsubCore(): pubsub), arguments);
-						};
-					//	Register the plugin events and bind using pubsub
-					pluginBindings[this.pluginName] = pluginBindings[this.pluginName] || [];
-					pluginBindings[this.pluginName].push({ name: name, func: myEventFunc });
-					pubsub.on(name, myEventFunc);
-				},
-
-				//	Shortcut for removing event listeners
-				off: expose(pubsub.off, pubsub),
-
-				//	Shortcut to triggr an event
-				trigger: expose(pubsub.trigger, pubsub)
-			},
-
-			//	Registers an event for use in plugins, and exposes onto core object as 'on' + capitalised(event name)
-			registerEvent = function(eve) {
-				capEve = eve.type.substring(0, 1).toUpperCase() + eve.type.substring(1);
-				coreObj['on' + capEve] = makeEvent(eve.type);
-				pubsub.addEventType(eve);
-			},
-
-			//	Returns an exposed event function
-			makeEvent = function (name) {
-				var pubsubCore = pubsub.getCore();
-				return expose(function (func, pluginName) {
-					if(pluginName !== undefined) {
-						currentPluginName = pluginName;
-					}
-					var eventCurrentPluginName = currentPluginName,
-						//	Create an event we can bind and register
-						myEventFunc = function() {
-							var pubsubCore = pubsub.getCore();
-							currentPluginName = eventCurrentPluginName;
-							func.apply((pubsubCore? pubsubCore(): pubsub), arguments);
-						};
-					//	Register the plugin events and bind using pubsub
-					pluginBindings[currentPluginName] = pluginBindings[currentPluginName] || [];
-					pluginBindings[currentPluginName].push({ name: name, func: myEventFunc });
-					pubsub.on(name, myEventFunc);
-				}, (pubsubCore? pubsubCore(): pubsub));
-			},
-
-			currentPluginName,
-			plugins = [],
-			pluginBindings = {},
-
-			getPlugin = function (name) {
-				var i;
-				for (i = 0; i < plugins.length; i += 1) {
-					if (plugins[i].name === name) {
-						return plugins[i];
-					}
-				}
-				return false;
-			},
-
-			//	Add a plugin to the list
-			addPlugin = function (name, pluginObj) {
-				var hasPlugin = !! (getPlugin(name)),
-					i, j;
-
-				currentPluginName = name;
-
-				if (!hasPlugin) {
-					plugins.push({
-						name: name,
-						obj: pluginObj
-					});
-					setupPlugin(plugins[plugins.length - 1]);
-				} else {
-					if (pluginOverride) {
-						for (i = 0; i < plugins.length; i += 1) {
-							if (plugins[i].name === name) {
-								//	Remove events from the pubsub.
-								if(pluginBindings[name]) {
-									for(j = 0; j < pluginBindings[name].length; j += 1) {
-										pubsub.off(pluginBindings[name][j].name, pluginBindings[name][j].func);
-									}
-								}
-
-								//	Remove old plugin function, and setup new plugin
-								delete plugins[i].obj;
-								plugins[i].obj = pluginObj;
-								setupPlugin(plugins[i]);
-
-								return plugins[i];
-							}
-						}
-					} else {
-						handleError('PluginAlreadyExists', name);
-						return false;
-					}
-				}
-
-				return true;
-			},
-
-			setupPlugin = function (plugin, config) {
-				var ci, pc = pluginConfig["*"];
-				config = (config !== undefined)? config: pluginConfig[plugin.name];
-
-				//	Add properties from generic config if available
-				if(pc) {
-					config = config || {};
-					for(c in pc) {if(pc.hasOwnProperty(c)) {
-						if(!config.hasOwnProperty(c)) {
-							config[c] = pc[c];
-						}
-					}}
-				}
-
-				//  Use apply to expose core
-				plugin.obj.apply(core({
-						name: plugin.name
-					} ), [
-						(config !== undefined)? config: {}
-					]
-				);
-			};
-
-		//	Expose the registerEvent, add and trigger methods
-		this.registerEvent = registerEvent;
-		this.add = addPlugin;
-		this.trigger = expose(pubsub.trigger, pubsub);
-
-		//	Add all events
-		if (args && args.events) {
-			for (i = 0; i < args.events.length; i += 1) {
-				registerEvent(args.events[i]);
-			}
-		}
-		if (args.config !== undefined) {
-			config = args.config;
-		}
-		if (args.pluginConfig !== undefined) {
-			pluginConfig = args.pluginConfig;
-		}
-		if (args.pluginOverride !== undefined) {
-			pluginOverride = args.pluginOverride;
-		}
-
-	};
-
-	//  Expose external functions
-	ulib.plugin = new PluginManager();
-	ulib.PluginManager = PluginManager;
-}(ulib));;/*global window */
-/*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, newcap: true, immed: true */
-/*
-	ulib - jsguy's standalone micro utilities library
-
-	Copyright (C) 2011 by Mikkel Bergmann
-	
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-	
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-	
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
-
-*/
-
-/*
-	ulib.cookie - cookie functionality
-	part of the u collection - simple utilities
-
-	Usage:
-
-		ulib.cookie.set(key, value, options)
-	
-	key - the key for the cookie to set
-	value - what valye to set for the cookie
-	options - optional arguments:
-		days - how many days the cookie is valid for
-
-*/
-ulib = ulib || {};
-(function (ulib) {
-	var cookie = {
-		//	Get a cookie
-		get: function (key) {
-			var tmp = window.document.cookie.match((new RegExp(key + '=[^;]+($|;)', 'gi')));
-			if (!tmp || !tmp[0]) {
-				return null;
-			} else {
-				return window.unescape(tmp[0].substring(key.length + 1, tmp[0].length).replace(';', '')) || null;
-			}
-		},
-
-		//	Set cookie, use options to optionally specify days, (default = 1), path, session only cookie, etc...
-		set: function (key, value, options) {
-			var cookie = [key + '=' + window.escape(value)],
-				seconds, minutes, days, months, years, expiryDate, addDays;
-
-			//	Ensure we have options
-			options = options || {};
-
-			if (!options.session) {
-				days = (isNaN(parseInt(options.days, 10))) ? 1 : parseInt(options.days, 10);
-
-				expiryDate = new Date();
-				addDays = (days * 24 * 60 * 60 * 1000);
-				expiryDate.setTime(expiryDate.getTime() + addDays);
-				cookie.push('expires=' + expiryDate.toGMTString());
-			}
-
-			if (options.path) {
-				cookie.push('path=' + options.path);
-			}
-
-			if (options.domain) {
-				cookie.push('domain=' + options.domain);
-			}
-
-			if (options.secure) {
-				cookie.push('secure');
-			}
-
-			if (options.httponly) {
-				cookie.push('httponly');
-			}
-
-			return (window.document.cookie = cookie.join('; '));
-		},
-
-		//	Removes a cookie by expiring it.
-		remove: function (key) {
-			if (this.get(key)) {
-				this.set(key, '', {
-					days: -1
-				});
-			}
-		}
-	};
-
-	//	Expose the cookie function
-	ulib.cookie = cookie;
-}(ulib));;}(sole.ulib));;/*global window, ulib, sole, document, QUnit */
+var sole = this.sole || {};
+sole.ulib = this.ulib || {};
+(function(){;}).call(this.sole);;/*global window, ulib, sole, document, QUnit */
 /*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, newcap: true, immed: true */
 /*
  * @fileOverview This file contains the main sole functionality.
@@ -765,7 +48,13 @@ ulib = ulib || {};
 	http://simonwillison.net/2006/Jan/20/escape/#p-6
 
 */
-(function (window, ulib, undefined) {
+(function(){
+	//	Keep track of sole instances so that we can add filters and plugins to each, from the constructor 
+	var soleInstances = [],
+		outsideSelf = this,
+		//	Inject ulib
+		ulib = (typeof sole !== 'undefined' && sole.ulib)? sole.ulib: this.ulib;
+
 	/** sole - soul of the console
 	 *
 	 * sole creates a "console like" function that includes "tagging", and easy filtering in console operations.
@@ -787,7 +76,7 @@ ulib = ulib || {};
 	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
 	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
-	var sole = function (args) {
+	var soleDef = function (args) {
 		args = args || {};
 		var self = this,
 			matches,
@@ -867,7 +156,21 @@ ulib = ulib || {};
 				}
 
 				return addedTag;
-			};
+			},
+
+			//	From: http://dbj.org/dbj/?p=286
+			isFuncTest = new RegExp("^\\s*\\bfunction\\b");
+
+		//expose ulib
+		self.ulib = ulib;
+
+		self.isFunc = function(f) {
+			try {
+				return isFuncTest.test(f);
+			} catch (x) {
+				return false;
+			}
+		};
 
 		self.plugin = new ulib.PluginManager({
 			pubsub: events,
@@ -1097,10 +400,52 @@ ulib = ulib || {};
 			return self;
 		};
 
+		/** Provides a simple iterator 
+		 * @param {function} A function with [index] and [item] as parameters
+		 * @returns {Sole} The sole instance
+		 * @note This method is chainable
+		 */
+		self.each = function(func) {
+			for(i = 0; i < self.length; i += 1) {
+				if(func.apply( self, [i, self[i]]) === false) {
+					break;
+				}
+			}
+			return self;
+		};
+
+		//	Object for filters
+		self.filters = {};
+
+		//	Apply a filter
+		self.applyFilter = function(name, args) {
+			return self.filter(self.filters[name]);
+		};
+
+		//	Add filter on an instance
+		self.addFilter = function(name, func) {
+			self.filters[name] = func;
+		};
+
+
+		/** Provides a simple filter function that uses a function to determine if each item is included
+		 * @param {function} A function with [index] and [item] as parameters that returns flase if an item should be filtered.
+		 * @returns {Sole} The sole instance
+		 * @note This method is chainable
+		 */
+		self.filterEach = function(func) {
+			var i, newMatches = [];
+			for(i = 0; i < self.length; i += 1) {
+				if(func.apply( self, [i, self[i]]) !== false) {
+					newMatches.push(self[i]);
+				}
+			}
+			return self.copy(cfg, newMatches);
+		};
+
 		//	Match and history functionality on types or tags
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
-		//	TODO: Ability to pass in a function to examine the 
 		/*
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
@@ -1111,6 +456,10 @@ ulib = ulib || {};
 				include, okTags, okTypes, tags = args.tag || [],
 				types = args.type || [],
 				not = args.not || false;
+
+			if(self.isFunc(args)) {
+				return self.filterEach(args);
+			}
 
 			//  We allow a string, and assume it to be a tag
 			if (typeof args === 'string') {
@@ -1233,8 +582,10 @@ ulib = ulib || {};
 			var i;
 
 			//	Remove old matches
-			for (i = 0; i < matches.length; i += 1) {
-				delete self[i];
+			if(matches) {
+				for (i = 0; i < matches.length; i += 1) {
+					delete self[i];
+				}
 			}
 
 			//	Add new matches
@@ -1249,6 +600,8 @@ ulib = ulib || {};
 		self.copy = function (args, entries) {
 			var ns = new this.constructor(args);
 			ns.setMatches(entries || matches);
+			//	TODO: This is expensive - see if we can overwrite the object?
+
 			return ns;
 		};
 
@@ -1289,27 +642,21 @@ ulib = ulib || {};
 			}
 		};
 
-		//	Add in a plugin manually
-		self.addPluginManually = function(type, func) {
-			//	Add any plugins
-			// if(sole.pluginList && sole.pluginList.length > 0) {
-			// 	for(i = 0; i < sole.pluginList.length; i += 1) {
-			// 		self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
-			// 	}
-			// }
+		//	Add a plugin
+		self.addPlugin = function(type, func) {
 			self.plugin.add(type, func);
 		};
 
 		//	Allow old version of Sole to be used instead
 		self.noConflict = function(deep) {
 			//	Instance
-			if( _globalSole && window.sole !== _globalSole ) {
-				window.sole = _globalSole;
+			if( _globalSole && outsideSelf.sole !== _globalSole ) {
+				outsideSelf.sole = _globalSole;
 			}
 
 			//	Constructor
-			if( deep && _Sole && window.Sole !== _Sole ) {
-				window.Sole = _Sole;
+			if( deep && _Sole && outsideSelf.Sole !== _Sole ) {
+				outsideSelf.Sole = _Sole;
 			}
 
 			return Sole;
@@ -1332,12 +679,24 @@ ulib = ulib || {};
 		self.plugin.registerEvent({ type: self.enums.events.output});
 		self.plugin.registerEvent({ type: self.enums.events.tag });
 
+		//	Set a pointer to the object 
+		soleInstances.push(self);
+		self.soleInstance = soleInstances[soleInstances.length -1];
+
+
 		//	Add any registered plugins
-		if(sole.pluginList && sole.pluginList.length > 0) {
-			for(i = 0; i < sole.pluginList.length; i += 1) {
-				self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
+		if(soleDef.pluginList && soleDef.pluginList.length > 0) {
+			for(i = 0; i < soleDef.pluginList.length; i += 1) {
+				self.plugin.add(soleDef.pluginList[i].type, soleDef.pluginList[i].func);
 			}
 		}
+
+		//	Add any registered filters
+		if(soleDef.filterList && soleDef.filterList.length > 0) {
+			for(i = 0; i < soleDef.filterList.length; i += 1) {
+				self.addFilter(soleDef.filterList[i].name, soleDef.filterList[i].func);
+			}
+		}				
 	},
 	globalSole,
 	_globalSole,
@@ -1401,38 +760,59 @@ ulib = ulib || {};
 	},
 	i;
 
-	//	Ability to add plugins 
-	sole.pluginList = [];
-	sole.plugin = function(type, func){
-		sole.pluginList.push({
+	//	Add plugins
+	soleDef.pluginList = [];
+	soleDef.plugin = function(type, func){
+		var i;
+		//	Add to list
+		soleDef.pluginList.push({
 			type: type,
 			func: func
 		});
-		globalSole.addPluginManually(type, func);;
+		//	Add to instances
+		for(i = 0; i < soleInstances.length; i += 1) {
+			if(soleInstances[i] && soleInstances[i].addPlugin) {
+				soleInstances[i].addPlugin(type, func);
+			}
+		}
+	};
+
+	//	Ability to add filters
+	soleDef.filterList = [];
+	soleDef.addFilter = function(name, func){
+		var i;
+		//	Add to list
+		soleDef.filterList.push({
+			name: name,
+			func: func
+		});
+		//	Add to instances
+		for(i = 0; i < soleInstances.length; i += 1) {
+			if(soleInstances[i] && soleInstances[i].addFilter) {
+				soleInstances[i].addFilter(name, func);
+			}
+		}
 	};
 
 	//  Apply each loggable function
 	for (i = 0; i < logtagList.length; i += 1) {
-		sole.prototype[logtagList[i]] = shimFunc(logtagList[i]);
+		soleDef.prototype[logtagList[i]] = shimFunc(logtagList[i]);
 	}
 
-	//  Apply each passthrough function; note: This won't work for assert or exception, 
-	//	as they use line numbers
+	//  Apply each passthrough function; note: This won't work 
+	//	for assert or exception, as they use line numbers
 	for (i = 0; i < pttagList.length; i += 1) {
-		sole.prototype[pttagList[i]] = ptFunc(pttagList[i]);
+		soleDef.prototype[pttagList[i]] = ptFunc(pttagList[i]);
 	}
 
 	//	Allow for noConflict
-	_Sole = window.Sole;
-	_globalSole = window.sole;
+	_Sole = outsideSelf.Sole;
+	_globalSole = outsideSelf.sole;
 
 	//	Create instance
-	globalSole = new sole();
+	globalSole = new soleDef();
 
-	//	Expose a default sole instance and constructor
-	window.Sole = sole;
-	window.sole = globalSole;
-
-	return globalSole;
-//	Allow passing in of ulib to sole on the object
-}(this, (this.sole)? this.sole.ulib: this.ulib || {}));
+	//	Expose our constructor and sole instance
+	outsideSelf.Sole = soleDef;
+	outsideSelf.sole = globalSole;
+}).call(this);

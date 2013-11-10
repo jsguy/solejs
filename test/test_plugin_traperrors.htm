@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="libs/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="libs/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test trap errors plugin</h1>
+
+		<!-- sole.js including the console override plugin -->
+		<script src="../dist/sole-latest.js"></script>
+		<script src="../plugin/sole.plugin.traperrors.js"></script>
+		<!-- TESTING: report errors -->
+		<script src="../plugin/sole.plugin.reporterrors.js"></script>
+
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<script>
+			sole.setArg('traperrors', {
+				//	Set a custom method to catch errors
+				send: function callMe(args) {
+					var out;
+					//	Pass the message through to the sole error method
+					sole.error(args);
+
+					out = sole.get();
+
+					test( "sole captured the error", function() {
+						ok( out.length === 1, "Ensure only one error was caught" );
+						ok( out[0].type === "error", "Ensure an error was caught" );
+						ok( !isNaN(out[0].args[0].line), "Ensure line was passed" );
+						ok( out[0].args[0].file && out[0].args[0].file != "", "Ensure file was passed" );
+						ok( out[0].args[0].message && out[0].args[0].message.indexOf("nonExistantFunction") != -1, "Ensure message mentiones nonExistantFunction" );
+					});
+				}
+			});
+
+			//	Call something that doesn't exist
+			nonExistantFunction();
+
+	    </script>
+
+	</body>
+</html>

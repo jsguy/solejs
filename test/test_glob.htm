@@ -24,10 +24,10 @@
 	    
 	    <script>
 			var out = [];
-			out[1] = sole.glob("fruit.apple"),
-			out[2] = sole.glob("*.apple"),
-			out[3] = sole.glob("*apple*"),
-			out[4] = out[3].glob("*.apple.*"),
+			out[1] = sole.glob("fruit.apple");
+			out[2] = sole.glob("*.apple");
+			out[3] = sole.glob("*apple*");
+			out[4] = out[3].glob("*.apple.*");
 			out[5] = sole.glob("*red*");
 
 			test( "namespace globbing", function() {

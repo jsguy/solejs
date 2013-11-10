@@ -43,7 +43,13 @@
 	http://simonwillison.net/2006/Jan/20/escape/#p-6
 
 */
-(function (window, ulib, undefined) {
+(function(){
+	//	Keep track of sole instances so that we can add filters and plugins to each, from the constructor 
+	var soleInstances = [],
+		outsideSelf = this,
+		//	Inject ulib
+		ulib = (typeof sole !== 'undefined' && sole.ulib)? sole.ulib: this.ulib;
+
 	/** sole - soul of the console
 	 *
 	 * sole creates a "console like" function that includes "tagging", and easy filtering in console operations.
@@ -65,7 +71,7 @@
 	 * @param {object} args.permanent Do we set a cookie to enable sole permanantly, default is false, which will also remove the cookie
 	 * @param {string} args.cookieName Name of cookie to use for the optional permanent config, default is "solecfg"
 	 */
-	var sole = function (args) {
+	var soleDef = function (args) {
 		args = args || {};
 		var self = this,
 			matches,
@@ -145,7 +151,21 @@
 				}
 
 				return addedTag;
-			};
+			},
+
+			//	From: http://dbj.org/dbj/?p=286
+			isFuncTest = new RegExp("^\\s*\\bfunction\\b");
+
+		//expose ulib
+		self.ulib = ulib;
+
+		self.isFunc = function(f) {
+			try {
+				return isFuncTest.test(f);
+			} catch (x) {
+				return false;
+			}
+		};
 
 		self.plugin = new ulib.PluginManager({
 			pubsub: events,
@@ -375,10 +395,52 @@
 			return self;
 		};
 
+		/** Provides a simple iterator 
+		 * @param {function} A function with [index] and [item] as parameters
+		 * @returns {Sole} The sole instance
+		 * @note This method is chainable
+		 */
+		self.each = function(func) {
+			for(i = 0; i < self.length; i += 1) {
+				if(func.apply( self, [i, self[i]]) === false) {
+					break;
+				}
+			}
+			return self;
+		};
+
+		//	Object for filters
+		self.filters = {};
+
+		//	Apply a filter
+		self.applyFilter = function(name, args) {
+			return self.filter(self.filters[name]);
+		};
+
+		//	Add filter on an instance
+		self.addFilter = function(name, func) {
+			self.filters[name] = func;
+		};
+
+
+		/** Provides a simple filter function that uses a function to determine if each item is included
+		 * @param {function} A function with [index] and [item] as parameters that returns flase if an item should be filtered.
+		 * @returns {Sole} The sole instance
+		 * @note This method is chainable
+		 */
+		self.filterEach = function(func) {
+			var i, newMatches = [];
+			for(i = 0; i < self.length; i += 1) {
+				if(func.apply( self, [i, self[i]]) !== false) {
+					newMatches.push(self[i]);
+				}
+			}
+			return self.copy(cfg, newMatches);
+		};
+
 		//	Match and history functionality on types or tags
 		//  Returns the history for a given  and optional type or group
 		//	TODO: document + examples
-		//	TODO: Ability to pass in a function to examine the 
 		/*
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
@@ -389,6 +451,10 @@
 				include, okTags, okTypes, tags = args.tag || [],
 				types = args.type || [],
 				not = args.not || false;
+
+			if(self.isFunc(args)) {
+				return self.filterEach(args);
+			}
 
 			//  We allow a string, and assume it to be a tag
 			if (typeof args === 'string') {
@@ -529,6 +595,8 @@
 		self.copy = function (args, entries) {
 			var ns = new this.constructor(args);
 			ns.setMatches(entries || matches);
+			//	TODO: This is expensive - see if we can overwrite the object?
+
 			return ns;
 		};
 
@@ -569,27 +637,21 @@
 			}
 		};
 
-		//	Add in a plugin manually
-		self.addPluginManually = function(type, func) {
-			//	Add any plugins
-			// if(sole.pluginList && sole.pluginList.length > 0) {
-			// 	for(i = 0; i < sole.pluginList.length; i += 1) {
-			// 		self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
-			// 	}
-			// }
+		//	Add a plugin
+		self.addPlugin = function(type, func) {
 			self.plugin.add(type, func);
 		};
 
 		//	Allow old version of Sole to be used instead
 		self.noConflict = function(deep) {
 			//	Instance
-			if( _globalSole && window.sole !== _globalSole ) {
-				window.sole = _globalSole;
+			if( _globalSole && outsideSelf.sole !== _globalSole ) {
+				outsideSelf.sole = _globalSole;
 			}
 
 			//	Constructor
-			if( deep && _Sole && window.Sole !== _Sole ) {
-				window.Sole = _Sole;
+			if( deep && _Sole && outsideSelf.Sole !== _Sole ) {
+				outsideSelf.Sole = _Sole;
 			}
 
 			return Sole;
@@ -612,12 +674,24 @@
 		self.plugin.registerEvent({ type: self.enums.events.output});
 		self.plugin.registerEvent({ type: self.enums.events.tag });
 
+		//	Set a pointer to the object 
+		soleInstances.push(self);
+		self.soleInstance = soleInstances[soleInstances.length -1];
+
+
 		//	Add any registered plugins
-		if(sole.pluginList && sole.pluginList.length > 0) {
-			for(i = 0; i < sole.pluginList.length; i += 1) {
-				self.plugin.add(sole.pluginList[i].type, sole.pluginList[i].func);
+		if(soleDef.pluginList && soleDef.pluginList.length > 0) {
+			for(i = 0; i < soleDef.pluginList.length; i += 1) {
+				self.plugin.add(soleDef.pluginList[i].type, soleDef.pluginList[i].func);
 			}
 		}
+
+		//	Add any registered filters
+		if(soleDef.filterList && soleDef.filterList.length > 0) {
+			for(i = 0; i < soleDef.filterList.length; i += 1) {
+				self.addFilter(soleDef.filterList[i].name, soleDef.filterList[i].func);
+			}
+		}				
 	},
 	globalSole,
 	_globalSole,
@@ -681,38 +755,59 @@
 	},
 	i;
 
-	//	Ability to add plugins 
-	sole.pluginList = [];
-	sole.plugin = function(type, func){
-		sole.pluginList.push({
+	//	Add plugins
+	soleDef.pluginList = [];
+	soleDef.plugin = function(type, func){
+		var i;
+		//	Add to list
+		soleDef.pluginList.push({
 			type: type,
 			func: func
 		});
-		globalSole.addPluginManually(type, func);;
+		//	Add to instances
+		for(i = 0; i < soleInstances.length; i += 1) {
+			if(soleInstances[i] && soleInstances[i].addPlugin) {
+				soleInstances[i].addPlugin(type, func);
+			}
+		}
+	};
+
+	//	Ability to add filters
+	soleDef.filterList = [];
+	soleDef.addFilter = function(name, func){
+		var i;
+		//	Add to list
+		soleDef.filterList.push({
+			name: name,
+			func: func
+		});
+		//	Add to instances
+		for(i = 0; i < soleInstances.length; i += 1) {
+			if(soleInstances[i] && soleInstances[i].addFilter) {
+				soleInstances[i].addFilter(name, func);
+			}
+		}
 	};
 
 	//  Apply each loggable function
 	for (i = 0; i < logtagList.length; i += 1) {
-		sole.prototype[logtagList[i]] = shimFunc(logtagList[i]);
+		soleDef.prototype[logtagList[i]] = shimFunc(logtagList[i]);
 	}
 
-	//  Apply each passthrough function; note: This won't work for assert or exception, 
-	//	as they use line numbers
+	//  Apply each passthrough function; note: This won't work 
+	//	for assert or exception, as they use line numbers
 	for (i = 0; i < pttagList.length; i += 1) {
-		sole.prototype[pttagList[i]] = ptFunc(pttagList[i]);
+		soleDef.prototype[pttagList[i]] = ptFunc(pttagList[i]);
 	}
 
 	//	Allow for noConflict
-	_Sole = window.Sole;
-	_globalSole = window.sole;
+	_Sole = outsideSelf.Sole;
+	_globalSole = outsideSelf.sole;
 
 	//	Create instance
-	globalSole = new sole();
+	globalSole = new soleDef();
 
-	//	Expose a default sole instance and constructor
-	window.Sole = sole;
-	window.sole = globalSole;
-
-	return globalSole;
-//	Allow passing in of ulib to sole on the object
-}(this, (this.sole)? this.sole.ulib: this.ulib || {}));
+	//	Expose our constructor and sole instance
+	outsideSelf.Sole = soleDef;
+	outsideSelf.sole = globalSole;
+}).call(this);

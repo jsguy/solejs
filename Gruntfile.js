@@ -1,7 +1,13 @@
 module.exports = function(grunt) {
 
 	//	Concatenation file order
-	var concatFiles = ['src/template/_headsole.js', '../ulib/ulib.pubsub.js', '../ulib/ulib.plugin.js', '../ulib/ulib.cookie.js', 'src/template/_footsole.js', 'src/sole.js'];
+	var concatFiles = [
+		'src/template/_headsole.js',
+		'../ulib/ulib.pubsub.js',
+		'../ulib/ulib.plugin.js',
+		'../ulib/ulib.cookie.js',
+		'src/template/_footsole.js',
+		'src/sole.js'];
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),

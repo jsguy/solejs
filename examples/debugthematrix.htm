@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="/libs/jquery-1.9.1.js"></script>
+		<script src="jquery.scrollTo/jquery.scrollTo.js"</script>
+		<!-- Qunit stuff -->
+		<script src="/libs/qunit-master/qunit/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+		<style>
+			.codeBox 		{ width: 800px; height: 260px; }
+			.hide 			{ display: none }
+			label 			{ font-weight: bold; min-width: 300px; display: block; }
+		</style>
+
+		<!-- sole.js including the qunit generator plugin -->
+		<script src="../dist/sole-latest.js"></script>
+		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
+	</head>
+	<body>
+
+		<h1>sole.js matrix debugger</h1>
+
+		<style>
+			.cf:before, .cf:after {content: " "; display: table; }
+			.cf:after {clear: both; }
+			.cf {*zoom: 1; }
+
+			.matrix {
+				font-family: courier;
+				padding: 1em;
+				overflow: auto;
+				background: #000;
+				color: limegreen;
+				width: 32em;
+				float: left;
+				height: 12em;
+				font-size: 0.8em;
+			}
+			#debugMatrix { margin-left: 1em; }
+			.clear { clear: both; }
+			.command {
+				margin-top: 0.8em;
+				font-family: courier;
+				padding: 1em;
+				overflow: auto;
+				background: #000;
+				color: limegreen;
+				width: 100%;
+				height: 1em;
+				font-size: 0.8em;
+			}
+			.cmd { color: #fff; }
+			#matrix .Morpheus {
+				font-weight: bold;
+				color: darkmagenta;
+			}
+			#matrix .Neo {
+				font-weight: bold;
+				color: green;
+			}
+		</style>
+
+		<p>
+			<div id="matrix" class="matrix"></div>
+			<div id="debugMatrix" class="matrix hide"></div>
+			<div class="clear"></div>
+			<div id="debugMatrixCommand" class="cf command hide"></div>
+		</p>
+
+		<script>
+			// var betweenMessageDelay = 1000,
+			// 	delayAnim = 120,
+			// 	delayVariance = 300;
+			var betweenMessageDelay = 10,
+				delayAnim = 1,
+				delayVariance = 3;
+
+
+			$.fn.teletype = function(opts){
+			    var $this = this,
+			        defaults = {
+			            delayAnim: delayAnim,
+			            delayVariance: delayVariance
+			        },
+			        settings = $.extend(defaults, opts),
+			        count = 0,
+			        charList = settings.text.split(''),
+			        getDelay = function() {
+						return (settings.delayAnim + ((Math.random() > 0.5)? 1: -1) * (Math.random() * settings.delayVariance));
+			        },
+			        typeLetter = function(){
+			            $this.html($this.html() + charList[count]);
+			            if(count < charList.length - 1) {
+					        setTimeout(typeLetter, getDelay());
+			            } else {
+			            	if($.isFunction(settings.callback)) {
+			            		settings.callback();
+			            	}
+			            }
+			            count += 1;
+			        };
+
+		        setTimeout(typeLetter, getDelay());
+			};
+
+			var
+			startTexts = [
+				{ who: "Morpheus", text: "Wake up, Neo..." },
+				{ who: "Morpheus", text: "The Matrix has ... uh, this is kind of embarrassing ..." },
+				{ who: "Morpheus", text: "I was running an, uh, \"simulation\", and The Matrix has crashed..." },
+				{ who: "Morpheus", text: "I need you to debug it!" },
+				{ who: "Neo", text: "Did you install sole.js like I asked the other day?" },
+				{ who: "Morpheus", text: "Yeah, the latest version, why?" },
+				{ who: "Neo", text: "Great. This is going to be easy :)" }
+			],
+			debugTexts = [
+				{ cmd: "sole.get().length" },
+				{ who: "Neo", text: "Lots of entries..." },
+				{ who: "Morpheus", text: "Yep, the matrix is .. large" },
+				{ who: "Neo", text: "Have you tried turning it off and on again?" },
+				{ who: "Neo", text: "..." },
+				{ who: "Morpheus", text: ". . .-." },
+				{ who: "Morpheus", text: ". . |U|" },
+				{ who: "Morpheus", text: ". . | |" },
+				{ who: "Morpheus", text: ". . | |" },
+				{ who: "Morpheus", text: ". ._| |_" },
+				{ who: "Morpheus", text: ". | | | |-." },
+				{ who: "Morpheus", text: "./| . . ` |" },
+				{ who: "Morpheus", text: "| | . . . |" },
+				{ who: "Morpheus", text: "| . . . . |" },
+				{ who: "Morpheus", text: "\\ . . . . /" },
+				{ who: "Morpheus", text: ".| . . . |" },
+				{ who: "Morpheus", text: ".| . . . |" },
+				{ who: "Neo", text: "Hehe." },
+				{ who: "Neo", text: "Let's try a filter..." },
+				{ cmd: "sole.filter('INFO').get().length" },
+				{ who: "Neo", text: "Hmm... maybe look for errors..." },
+				{ cmd: "sole.filter({ type: 'error' }).get().length" },
+				{ who: "Neo", text: "Ahh, there we go!" },
+				{ cmd: "sole.filter({ type: 'error' })[0].args" },
+				{ who: "Neo", text: " Glitch stack overflow - that means..." },
+				{ who: "Morpheus", text: "...Something was repeated too many times... oh." },
+				{ who: "Morpheus", text: "Uh, this isn't really important, never mind, let's just reboot it and wipe the log." },
+				{ cmd: "sole.filter({ type: 'ERROR' }).get().length" },
+				{ who: "Neo", text: "Nah, it's just getting interesting, let's see what overflowed..." },
+				{ cmd: "sole.applyFilter('repeater', {min: 5}).length" },
+				{ who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
+				{ cmd: "sole.applyFilter('repeater', {min: 5})[0].args" }
+
+				//	Note: 
+
+				//	Need to find repeats where the red dress girl is shown
+				//	Custom filter via function
+				//	When found, explain that repeats in the matrix means something has changed
+				//	This caused the crash
+				//	
+
+			],
+			theMatrix,
+			count = 0,
+			showTexts = function(texts, callback) {
+
+				if(texts[count].who) {
+
+					$('#matrix').html($('#matrix').html() + "<span class='who "+texts[count].who+"'>" + texts[count].who + ": </span>");
+
+					$('#matrix').teletype({
+						text: texts[count].text,
+						callback: function() {
+
+							//	Scrollto
+							$('#matrix')
+								.scrollTo($('#matrix .who').last(), 500);
+
+							setTimeout(function() {
+								$('#matrix').html($('#matrix').html() + "<br/>");
+					            if(count < texts.length - 1) {
+						            count += 1;
+					         		showTexts(texts, callback);
+					            } else {
+					            	if($.isFunction(callback)) {
+					            		callback();
+					            	}
+					            }
+							}, betweenMessageDelay);
+						}
+					});
+				} else if(texts[count].cmd) {
+					//var result = execute(texts[count].cmd);
+					execCmd(texts[count].cmd, function() {
+						setTimeout(function() {
+				            if(count < texts.length - 1) {
+					            count += 1;
+				         		showTexts(texts, callback);
+				            } else {
+				            	if($.isFunction(callback)) {
+				            		callback();
+				            	}
+				            }
+						}, 100);
+					});
+				}
+
+			},
+			execute = function(str) {
+				return (new Function("return (" + str + ")")());
+			},
+			execCmd = function(cmd, callback) {
+				//	Show command
+				$('#debugMatrixCommand').append("<br/>" + cmd);
+				$('#debugMatrix').append("<br/><br/><span class='cmd'>$> " +cmd+ "</span><span class='end'></span>");
+
+				$('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 100);
+				var result = execute(cmd);
+				//	Show result
+				$('#debugMatrix').append("<br/><span class='cmdResult'>" + result + "</span><span class='end'></span>");
+				//	Scroll to the end
+				$('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 200);
+
+				if($.isFunction(callback)) {
+					callback();
+				}
+			};
+
+			showTexts(startTexts, function() {
+				var i, list = [];
+
+				//	Custom sole object with the matrix
+				sole = new Sole({
+					matches: theMatrix
+				});
+
+				for(i = 0; i < theMatrix.length; i += 1) {
+					list.push(JSON.stringify(theMatrix[i]))
+				}
+
+				//	TODO: This should be shown when the user click the flashing "click here to continue..."
+
+				$('#debugMatrix').html(list.join(",<br/>") + "<span class='end'></span>").slideDown('slow');
+
+				$('#debugMatrixCommand').slideDown('slow');
+
+				$('#debugMatrix')
+					.scrollTo(0)
+					.scrollTo($('#debugMatrix .end'), 3000, function() {
+						console.log('done');
+
+						//	Now show the commands
+						count = 0;
+						showTexts(debugTexts, function() {
+							console.log("commands done");
+						});
+
+
+					});
+			});
+
+			$.ajax({
+				//	Script derived from: http://dc-mrg.english.ucsb.edu/WarnerTeach/E192/matrix/Matrix.script.html
+				url: 'matrixlog.json',
+				success: function(data){
+					theMatrix = data;
+				}
+			})
+
+/*
+			$('#matrix').teletype({
+				text: "Wake up, Neo...",
+				callback: function() {
+					setTimeout(function() {
+						$('#matrix').teletype({
+							text: "The Matrix has .... uh, \"crashed\"..."
+						});
+					});
+				}
+			})
+*/
+
+		</script>
+
+
+	</body>
+</html>
