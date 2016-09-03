@@ -48,7 +48,13 @@
 	var soleInstances = [],
 		outsideSelf = this,
 		//	Inject ulib
-		ulib = (typeof sole !== 'undefined' && sole.ulib)? sole.ulib: this.ulib;
+		ulib = (typeof sole !== 'undefined' && sole.ulib)? sole.ulib: this.ulib,
+		isArray = function(arg) {
+			return (typeof arg === 'object' && (arg instanceof Array));
+		},
+		isObject = function(arg) {
+			return typeof arg === "object" && arg !== null;
+		};
 
 	/** sole - soul of the console
 	 *
@@ -133,7 +139,7 @@
 			addTag = function (tag, out) {
 				var i, addedTag = false;
 
-				if (!(typeof tag === 'object' && (tag instanceof Array))) {
+				if (!isArray(tag)) {
 					tag = [tag];
 				}
 
@@ -288,7 +294,7 @@
 					if(typeof value === 'string') {
 						value = value.split('.');
 					}
-					if (value instanceof Array) {
+					if (isArray(value)) {
 						for(j = 0; j < value.length; j += 1) {
 							tmpList.push(value[j]);
 						}
@@ -412,9 +418,9 @@
 		//	Object for filters
 		self.filters = {};
 
-		//	Apply a filter
-		self.applyFilter = function(name, args) {
-			return self.filter(self.filters[name]);
+		//	Apply a filter to this instance of sole
+		self.applyFilter = function(name, options) {
+			return self.filter(name, options);
 		};
 
 		//	Add filter on an instance
@@ -424,14 +430,14 @@
 
 
 		/** Provides a simple filter function that uses a function to determine if each item is included
-		 * @param {function} A function with [index] and [item] as parameters that returns flase if an item should be filtered.
+		 * @param {function} A function with [index] and [item] as parameters that returns false if an item should be filtered out.
 		 * @returns {Sole} The sole instance
 		 * @note This method is chainable
 		 */
-		self.filterEach = function(func) {
+		self.filterEach = function(func, options) {
 			var i, newMatches = [];
 			for(i = 0; i < self.length; i += 1) {
-				if(func.apply( self, [i, self[i]]) !== false) {
+				if(func.apply(self, [i, self[i]]) !== false) {
 					newMatches.push(self[i]);
 				}
 			}
@@ -445,7 +451,7 @@
 		 * @param {string||array} [args.tag] A list of tags (also accepts a single string)
 		 * @param {string||array} [args.type] A list of types (also accepts a single string)
 		 */
-		self.filter = function (args) {
+		self.filter = function (args, options) {
 			args = args || {};
 			var i, j, l, log, result = [], notResult = [],
 				include, okTags, okTypes, tags = args.tag || [],
@@ -453,26 +459,30 @@
 				not = args.not || false;
 
 			if(self.isFunc(args)) {
-				return self.filterEach(args);
+				return self.filterEach(args, options);
 			}
 
-			//  We allow a string, and assume it to be a tag
+			//  We allow a string, and assume it to be either
+			//	the name of a filter, or a tag
 			if (typeof args === 'string') {
-				tags = [args];
+				if(self.filters[args]) {
+					return self.filterEach(self.filters[args](options));
+				} else {
+					tags = [args];
+				}
 			}
 
 			//  We allow a list
-			if ((typeof tags === 'object' && (tags instanceof Array))) {
+			if (isArray(args)) {
 				tags = args;
 			}
 
-			//  We allow either one tag, or a list
-			if (!(typeof tags === 'object' && (tags instanceof Array))) {
+			if (!isArray(tags)) {
 				tags = (tags !== undefined) ? [tags] : tags;
 			}
 
 			//  We allow either one type, or a list
-			if (!(typeof types === 'object' && (types instanceof Array))) {
+			if (!isArray(types)) {
 				types = (types !== undefined) ? [types] : types;
 			}
 
@@ -489,10 +499,12 @@
 					if (tags && tags.length > 0) {
 						okTags = false;
 						for (i = 0; i < tags.length; i += 1) {
-							for (j = 0; j < log.tags.length; j += 1) {
-								if (tags[i] === log.tags[j]) {
-									okTags = true;
-									break;
+							if (log && log.tags && log.tags.length > 0) {
+								for (j = 0; j < log.tags.length; j += 1) {
+									if (tags[i] === log.tags[j]) {
+										okTags = true;
+										break;
+									}
 								}
 							}
 						}
@@ -527,6 +539,98 @@
 
 			//	Use copy so we can chain calls
 			return not? self.copy(cfg, notResult): self.copy(cfg, result);
+		};
+
+		//	Match on parts of the query - you can add multiples, eg:
+		//	{tags: ["one", "theother"]},
+		//	To match strictly, use:
+		//	{tags: {$all: ["one", "theother"]}}
+		self.query = function(args){
+			var result = [],
+				i, j, k, l, m,
+				log, tag,
+				matchStrict = false,
+				include,
+				exTags,
+				expandTags = function(value){
+					if(typeof value === 'string') {
+						return value.split('.');
+					}
+				},
+				compareTags = function(tag1, tag2, matchStrict){
+					var j, k, 
+						matched = false,
+						count = 0;
+					for(j = 0; j < tag1.length; j+= 1) {
+						//	Check for list in log[i] as well, 
+						//	if any matches, we return it all.
+						if(isArray(tag2)) {
+							for(k = 0; k < tag2.length; k+= 1) {
+								if(tag2[k] == tag1[j]) {
+									matched = true;
+									break;
+								}
+							}
+							if(matched) {
+								count += 1;
+							}
+						} else {
+							if(tag2 == tag1[j]) {
+								matched = true;
+								count += 1;
+								break;
+							}
+						}
+					}
+					if(matchStrict) {
+						return matches && (count == tag1.length && tag1.length == tag2.length);
+					} else {
+						return matched;
+					}
+				};
+
+			for (l = 0; l < matches.length; l += 1) {
+				log = matches[l];
+				include = false;
+				for(i in args) {
+					matchStrict = false;
+					tag = args[i];
+					if(isObject(tag)){
+						if(tag.$all) {
+							tag = tag.$all;
+							matchStrict = true;
+						} else {
+							for(m in tag) {
+								tag = tag[m];
+								break;
+							}
+						}
+					}
+
+					//	Check if we have a list
+					if (isArray(tag)) {
+						include = compareTags(tag, log[i], matchStrict);
+					} else {
+						//	Else just compare
+						if(log[i] == tag) {
+							include = true;
+							break;
+						}
+						exTags = expandTags(tag);
+						//	use expanded tags as well if needed
+						//	An expanded tag assumes we want the exact match
+						if(i == "tags" && exTags[0] !== tag) {
+							include = compareTags(exTags, log[i], matchStrict);
+						}
+					}
+				}
+				if(include) {
+					result.push(log);
+				}
+			}
+
+			//	Use copy so we can chain calls
+			return self.copy(cfg, result);
 		};
 
 		//	glob function, ie: "*pax*" matches tags of ["something.pax.whatever", "pax", "pax.widget"]
@@ -611,7 +715,7 @@
 			if(config.tag) {
 				cfg.permtag = config.tag;
 				//  Always a list
-				if (!(typeof cfg.permtag === 'object' && (cfg.permtag instanceof Array))) {
+				if (!isArray(cfg.permtag)) {
 					cfg.permtag = [cfg.permtag];
 				}
 			}
@@ -710,11 +814,11 @@
 			var tags = [], caller, funcRE, defaultFuncName = 'anonymous', funcName = defaultFuncName, addTags = this.getCfg().tag || [], i;
 
 			//  We assume a list
-			if (!(typeof tags === 'object' && (tags instanceof Array))) {
+			if (!isArray(tags)) {
 				tags = [tags];
 			}
 
-			if (!(typeof addTags === 'object' && (addTags instanceof Array))) {
+			if (!isArray(addTags)) {
 				addTags = [addTags];
 			}
 

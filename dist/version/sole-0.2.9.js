@@ -40,9 +40,10 @@ sole.ulib = this.ulib || {};
 	2. Ability to filter events by type
 */
 
-var ulib = this.ulib || {};
+this.ulib = this.ulib || {};
 (function(){
-	var Pubsub = function (args) {
+	var ulib = this.ulib,
+		Pubsub = function (args) {
 
 		var //	List of supported events
 			events = [],
@@ -376,7 +377,8 @@ var ulib = this.ulib || {};
 	 * 	pluginConfig - configurations that can be passed to named plugins
 	 *
 	 */
-	var PluginManager = function (args) {
+	var ulib = this.ulib,
+		PluginManager = function (args) {
 		args = args || {};
 		//  "Global" config object - exposed to all plugins via get and set functions in the core
 		var i, config = {},
@@ -1220,12 +1222,14 @@ var ulib = this.ulib || {};
 					if (tags && tags.length > 0) {
 						okTags = false;
 						for (i = 0; i < tags.length; i += 1) {
-							for (j = 0; j < log.tags.length; j += 1) {
-								if (tags[i] === log.tags[j]) {
-									okTags = true;
-									break;
+							//if (log && log.tags && log.tags.length > 0) {
+								for (j = 0; j < log.tags.length; j += 1) {
+									if (tags[i] === log.tags[j]) {
+										okTags = true;
+										break;
+									}
 								}
-							}
+							//}
 						}
 						if (!okTags) {
 							include = false;

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- Qunit stuff -->
+		<script src="libs/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="libs/qunit.css">
+	</head>
+	<body>
+		<h1>sole.js test filtering using a function</h1>
+		<div id="qunit"></div>
+		<div id="qunit-fixture"></div>
+
+		<!-- Load sole.js -->
+		<script src="build/testbuild.js"></script>
+		<!-- Load the repeat filter -->
+		<script src="../filter/sole.filter.repeat.js"></script>
+		<script>
+
+			var theMatrix = [
+				{"type":"log","tags":["Cypher"],"args":"There _is_ something about him, isn't there?"},
+				{"type":"log","tags":["Trinity"],"args":"Don't tell me you're a believer now..."},
+				{"type":"log","tags":["Cypher"],"args":"I just keep wondering..if Morpheus is so sure, why doesn't he take him to see the Oracle?"},
+				{"type":"log","tags":["Trinity"],"args":"Morpheus will take him...when he's ready."},
+				{"type":"warn","tags":["INFO"],"args":"She walks away from him, and Cypher smiles to himself."},
+				{"type":"warn","tags":["INFO"],"args":"When Neo wakes up, Morpheus takes him into another program. They walk down a busy street, full of people going to work. Morpheus casually walks through them, but Neo keeps on being hit or shoved aside. As they walk, Morpheus begins to walk."},
+				{"type":"log","tags":["Morpheus"],"args":"The Matrix is a system, Neo. That system is our enemy. But when you're inside, you look around. What do you see? Business people, teachers, lawyers, carpenters. The very minds of the people we are trying to save. But until we do, these people are still a part of that system, and that makes them our enemy."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."},
+				{"type":"warn","tags":["INFO"],"args":"A woman walks by, standing out from all the people in suits, as she is wearing a bright red dress, and bright red lipstick."},
+				{"type":"log","tags":["INFO"],"args":"Morpheus stares."}
+			];
+
+			sole = new Sole({
+				matches: theMatrix
+			});
+		</script>
+
+
+		<script>
+			sole.tag("fruit.apple").log("We have an apple");
+			sole.tag("fruit.apple.green").log("We have a green apple");
+			sole.tag("fruit.apple.red").log("We have a red apple");
+			sole.tag("fruit.apple.red").log("We have a red apple");
+			sole.tag("fruit.orange").log("We have an orange");
+			sole.tag("fruit.orange.valencia").warn("We have a valencia orange");
+			sole.tag("fruit.orange.valencia.old").warn("We have an old valencia orange");
+			sole.tag("beverage.orangejuice").error("We have orange juice!");
+			sole.tag("fruit.orange").log("We have an orange");
+			sole.tag("fruit.orange").log("We have an orange");
+			sole.tag("fruit.orange").log("We have an orange");
+
+	    </script>
+	    
+	    <script>
+			var out = [],
+				mySole = new Sole();
+
+			out.push(sole.filter(function(idx, item) {
+				return item.type == "warn";
+			}));
+
+			out.push(sole.filter(function(idx, item) {
+				return item.tags.join("").split("orange").length > 1 && item.type == "log";
+			}));
+
+			out.push(sole.applyFilter('repeat'));
+
+			test( "filtering by function", function() {
+				ok( out[0].length === 16, "Filtered on warn" );
+				ok( out[1].length === 4, "Filtered on orange logs" );
+				ok( out[2].length === 26, "Repeat filter" );
+			} );
+	    </script>
+	</body>
+</html>

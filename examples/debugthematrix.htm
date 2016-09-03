@@ -2,11 +2,11 @@
 <html>
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<script src="/libs/jquery-1.9.1.js"></script>
-		<script src="jquery.scrollTo/jquery.scrollTo.js"</script>
+		<script src="external/jquery-3.1.0.js"></script>
+		<script src="external/jquery.scrollTo/jquery.scrollTo.js"</script>
 		<!-- Qunit stuff -->
-		<script src="/libs/qunit-master/qunit/qunit.js"></script>
-		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+		<script src="external/qunit-2.0.1.js"></script>
+		<link rel="stylesheet" type="text/css" href="external/qunit-2.0.1.css">
 		<style>
 			.codeBox 		{ width: 800px; height: 260px; }
 			.hide 			{ display: none }
@@ -14,55 +14,55 @@
 		</style>
 
 		<!-- sole.js including the qunit generator plugin -->
+		<!--
 		<script src="../dist/sole-latest.js"></script>
+		-->
+		
+
+		<script src="../node_modules/ulib/src/ulib.pubsub.js"></script>
+		<script src="../node_modules/ulib/src/ulib.plugin.js"></script>
+		<script src="../node_modules/ulib/src/ulib.cookie.js"></script>
+
+		<script src="../src/sole.js"></script>
+
+
+		<script src="../filter/sole.filter.repeat.js"></script>
+
 		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
 	</head>
 	<body>
 
-		<h1>sole.js matrix debugger</h1>
+		<!-- <h1>sole.js matrix debugger</h1> -->
 
 		<style>
+			html,body {margin: 0; padding: 0; background: #000;}
 			.cf:before, .cf:after {content: " "; display: table; }
 			.cf:after {clear: both; }
 			.cf {*zoom: 1; }
 
-			.matrix {
-				font-family: courier;
-				padding: 1em;
-				overflow: auto;
-				background: #000;
-				color: limegreen;
-				width: 32em;
-				float: left;
-				height: 12em;
-				font-size: 0.8em;
-			}
-			#debugMatrix { margin-left: 1em; }
+			.matrix {font-family: courier; padding: 1rem; overflow: auto; background: #000; color: limegreen; font-size: 0.8em; }
+			/*.matrix {width: 32em; height: 12em;}*/
+			.surround {width: 100%; height: 100%;
+			margin:0 auto; position:relative; }
+			
+
+			#debugMatrix {position: fixed; width: 32rem; height: 16rem; right: 1rem; top: 2rem; background: #333; opacity: 0.75; border-left: 2px solid #3f3; border-right: 2px solid #3f3; border-bottom: 2px solid #3f3;}
+			#neoScreenHeading {position: fixed; width: 32rem; top: 0.5rem; right: 1rem; color: #fff; text-align: left; background: #444; border-top: 2px solid #3f3; border-left: 2px solid #3f3; border-right: 2px solid #3f3; padding: 0.25rem 1rem; font-size: 0.8rem; font-family: courier}
+
+
 			.clear { clear: both; }
-			.command {
-				margin-top: 0.8em;
-				font-family: courier;
-				padding: 1em;
-				overflow: auto;
-				background: #000;
-				color: limegreen;
-				width: 100%;
-				height: 1em;
-				font-size: 0.8em;
-			}
+			.command {margin-top: 0.8em; font-family: courier; padding: 1em; overflow: auto; background: #000; color: limegreen; width: 100%; height: 1em; font-size: 0.8em; }
 			.cmd { color: #fff; }
-			#matrix .Morpheus {
-				font-weight: bold;
-				color: darkmagenta;
-			}
-			#matrix .Neo {
-				font-weight: bold;
-				color: green;
-			}
+			.prompt { color: green; }
+			#matrix .Morpheus {font-weight: bold; color: darkmagenta; }
+			#matrix .Neo {font-weight: bold; color: green; }
 		</style>
 
 		<p>
-			<div id="matrix" class="matrix"></div>
+			<div class="surround matrix">
+				<div id="matrix" class=""></div>
+			</div>
+			<div id="neoScreenHeading" class="hide">Neo terminal</div>
 			<div id="debugMatrix" class="matrix hide"></div>
 			<div class="clear"></div>
 			<div id="debugMatrixCommand" class="cf command hide"></div>
@@ -72,16 +72,18 @@
 			// var betweenMessageDelay = 1000,
 			// 	delayAnim = 120,
 			// 	delayVariance = 300;
-			var betweenMessageDelay = 10,
-				delayAnim = 1,
-				delayVariance = 3;
+			var betweenMessageDelay = 500,
+				delayAnim = 10,
+				delayVariance = 10,
+				sole;
 
-
+			// Teletype plugin for jQuery
 			$.fn.teletype = function(opts){
 			    var $this = this,
 			        defaults = {
 			            delayAnim: delayAnim,
-			            delayVariance: delayVariance
+			            delayVariance: delayVariance,
+			            pause: 0
 			        },
 			        settings = $.extend(defaults, opts),
 			        count = 0,
@@ -95,30 +97,27 @@
 					        setTimeout(typeLetter, getDelay());
 			            } else {
 			            	if($.isFunction(settings.callback)) {
-			            		settings.callback();
+			            		setTimeout(function(){
+			            			settings.callback();
+			            		}, settings.pause);
 			            	}
 			            }
 			            count += 1;
 			        };
+
+			    //console.log('TT', settings);
 
 		        setTimeout(typeLetter, getDelay());
 			};
 
 			var
 			startTexts = [
-				{ who: "Morpheus", text: "Wake up, Neo..." },
-				{ who: "Morpheus", text: "The Matrix has ... uh, this is kind of embarrassing ..." },
-				{ who: "Morpheus", text: "I was running an, uh, \"simulation\", and The Matrix has crashed..." },
-				{ who: "Morpheus", text: "I need you to debug it!" },
-				{ who: "Neo", text: "Did you install sole.js like I asked the other day?" },
-				{ who: "Morpheus", text: "Yeah, the latest version, why?" },
-				{ who: "Neo", text: "Great. This is going to be easy :)" }
-			],
-			debugTexts = [
-				{ cmd: "sole.get().length" },
-				{ who: "Neo", text: "Lots of entries..." },
-				{ who: "Morpheus", text: "Yep, the matrix is .. large" },
-				{ who: "Neo", text: "Have you tried turning it off and on again?" },
+				{ who: "Morpheus", text: "Wake up, Neo...", pause: 400 },
+				{ who: "Morpheus", text: "The Matrix has ... ", pause: 400 },
+				{ who: "Morpheus", text: "Uh, this is kind of embarrassing ...", pause: 1000 },
+				{ who: "Morpheus", text: "I was running an, uh, \"simulation\", and The Matrix has, um... Crashed!.." },
+				{ who: "Morpheus", text: "I need you to debug it!!", pause: 2000 },
+				{ who: "Neo", text: "Have you tried turning it off and on again?", pause: 2000 },
 				{ who: "Neo", text: "..." },
 				{ who: "Morpheus", text: ". . .-." },
 				{ who: "Morpheus", text: ". . |U|" },
@@ -132,30 +131,41 @@
 				{ who: "Morpheus", text: "\\ . . . . /" },
 				{ who: "Morpheus", text: ".| . . . |" },
 				{ who: "Morpheus", text: ".| . . . |" },
-				{ who: "Neo", text: "Hehe." },
+				{ who: "Neo", text: "Hehe.", pause: 1000 },
+				{ who: "Neo", text: "Did you install sole.js like I asked the other day?" },
+				{ who: "Morpheus", text: "Yeah, the latest version, why?" },
+				{ who: "Neo", text: "Great. This is going to be easy :)" },
+				{ who: "Neo", text: "Let me bring up a terminal...", pause: 1500 }
+			],
+			debugTexts = [
+				{ cmd: "sole.get().length" },
+				{ who: "Neo", text: "Lots of entries..." },
+				{ who: "Morpheus", text: "Yep, the matrix is .. large" },
 				{ who: "Neo", text: "Let's try a filter..." },
 				{ cmd: "sole.filter('INFO').get().length" },
 				{ who: "Neo", text: "Hmm... maybe look for errors..." },
 				{ cmd: "sole.filter({ type: 'error' }).get().length" },
 				{ who: "Neo", text: "Ahh, there we go!" },
 				{ cmd: "sole.filter({ type: 'error' })[0].args" },
-				{ who: "Neo", text: " Glitch stack overflow - that means..." },
-				{ who: "Morpheus", text: "...Something was repeated too many times... oh." },
+				{ who: "Neo", text: "Glitch stack overflow - that means..." },
+				{ who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
 				{ who: "Morpheus", text: "Uh, this isn't really important, never mind, let's just reboot it and wipe the log." },
-				{ cmd: "sole.filter({ type: 'ERROR' }).get().length" },
+				//{ cmd: "sole.filter({ type: 'error' }).get().length" },
 				{ who: "Neo", text: "Nah, it's just getting interesting, let's see what overflowed..." },
-				{ cmd: "sole.applyFilter('repeater', {min: 5}).length" },
+				{ cmd: "sole.filter('repeat', {min: 5}).length" },
 				{ who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
-				{ cmd: "sole.applyFilter('repeater', {min: 5})[0].args" }
+				{ who: "Neo", text: "Let me query for the warnings..." },
+				{ cmd: "sole.filter('repeat', {min: 5}).query({type: 'warn'})[0].args" },
+				{ who: "Morpheus", text: "Oh that, hehe ... How weird. But like I said, never mind, right?" },
 
-				//	Note: 
-
-				//	Need to find repeats where the red dress girl is shown
-				//	Custom filter via function
-				//	When found, explain that repeats in the matrix means something has changed
-				//	This caused the crash
-				//	
-
+				{ who: "Neo", text: "That is weird... I can probably query it for repeated logs..." },
+				{ cmd: "sole.filter('repeat', {min: 5}).query({type: 'log'})[0].args" },
+				{ who: "Neo", text: "Oh...", pause: 2000 },
+				{ who: "Neo", text: "Well that's awkward.", pause: 2000 },
+				{ who: "Morpheus", text: "Yeah.", pause: 2000 },
+				{ who: "Neo", text: "Let's never speak of this again.", pause: 1000 },
+				{ who: "Morpheus", text: "Agreed. Thanks, sole.js", pause: 1500 },
+				{ who: "Morpheus", text: "Thanks a lot." }
 			],
 			theMatrix,
 			count = 0,
@@ -167,11 +177,10 @@
 
 					$('#matrix').teletype({
 						text: texts[count].text,
+						pause:  texts[count].pause,
 						callback: function() {
 
-							//	Scrollto
-							$('#matrix')
-								.scrollTo($('#matrix .who').last(), 500);
+							$.scrollTo($('#matrix .who').last(), 500);
 
 							setTimeout(function() {
 								$('#matrix').html($('#matrix').html() + "<br/>");
@@ -209,7 +218,7 @@
 			execCmd = function(cmd, callback) {
 				//	Show command
 				$('#debugMatrixCommand').append("<br/>" + cmd);
-				$('#debugMatrix').append("<br/><br/><span class='cmd'>$> " +cmd+ "</span><span class='end'></span>");
+				$('#debugMatrix').append("<br/><br/><span class='prompt'>$ </span><span class='cmd'>" +cmd+ ";</span><span class='end'></span>");
 
 				$('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 100);
 				var result = execute(cmd);
@@ -223,59 +232,54 @@
 				}
 			};
 
-			showTexts(startTexts, function() {
-				var i, list = [];
+			var gomatrix = function() {
+				showTexts(startTexts, function() {
+					var i, list = [];
 
-				//	Custom sole object with the matrix
-				sole = new Sole({
-					matches: theMatrix
-				});
+					for(i = 0; i < theMatrix.length; i += 1) {
+						//list.push(JSON.stringify(theMatrix[i]))
+					}
 
-				for(i = 0; i < theMatrix.length; i += 1) {
-					list.push(JSON.stringify(theMatrix[i]))
-				}
+					//	TODO: This should be shown when the user click the flashing "click here to continue..."
 
-				//	TODO: This should be shown when the user click the flashing "click here to continue..."
+//					$('#debugMatrix').html(list.join(",<br/>") + "<span class='end'></span>").show().slideDown('slow');
 
-				$('#debugMatrix').html(list.join(",<br/>") + "<span class='end'></span>").slideDown('slow');
+					$('#debugMatrix').html("<span class='end'></span>").show().slideDown('slow');
 
-				$('#debugMatrixCommand').slideDown('slow');
+					$('#neoScreenHeading').show();
 
-				$('#debugMatrix')
-					.scrollTo(0)
-					.scrollTo($('#debugMatrix .end'), 3000, function() {
-						console.log('done');
-
-						//	Now show the commands
-						count = 0;
-						showTexts(debugTexts, function() {
-							console.log("commands done");
+					$('#debugMatrix')
+						.scrollTo(0)
+						.scrollTo($('#debugMatrix .end'), 3000, function() {
+							//	Now show the commands
+							count = 0;
+							showTexts(debugTexts, function() {
+								console.log("commands done");
+							});
 						});
+				});
+			};
 
-
-					});
-			});
 
 			$.ajax({
 				//	Script derived from: http://dc-mrg.english.ucsb.edu/WarnerTeach/E192/matrix/Matrix.script.html
 				url: 'matrixlog.json',
 				success: function(data){
-					theMatrix = data;
-				}
-			})
+					theMatrix = JSON.parse(data);
 
-/*
-			$('#matrix').teletype({
-				text: "Wake up, Neo...",
-				callback: function() {
-					setTimeout(function() {
-						$('#matrix').teletype({
-							text: "The Matrix has .... uh, \"crashed\"..."
-						});
+					//	Custom sole object with the matrix logs
+					//	ie: we load in matches, so we can 
+					//	interactively debug them, using sole.js
+					sole = new Sole({
+						matches: theMatrix
 					});
+
+					console.log('Matrix v 3.2.4 loaded');
+
+					gomatrix();
+
 				}
 			})
-*/
 
 		</script>
 
