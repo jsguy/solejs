@@ -8,9 +8,33 @@
 		<script src="external/qunit-2.0.1.js"></script>
 		<link rel="stylesheet" type="text/css" href="external/qunit-2.0.1.css">
 		<style>
+			html,body {margin: 0; padding: 0; background: #000;}
 			.codeBox 		{ width: 800px; height: 260px; }
 			.hide 			{ display: none }
 			label 			{ font-weight: bold; min-width: 300px; display: block; }
+			.cf:before, .cf:after {content: " "; display: table; }
+			.cf:after {clear: both; }
+			.cf {*zoom: 1; }
+
+			.matrix {font-family: courier; padding: 1rem; overflow: auto; background: #000; color: limegreen; font-size: 0.8em; }
+			.surround {width: 100%; height: 100%;
+			margin:0 auto; position:relative; }
+			
+			#links {position: fixed; top: 0; left: 20rem; background: transparent; padding: 0;}
+
+			#links a {color: turquoise;}
+
+			#debugMatrix {position: fixed; width: 32rem; height: 16rem; right: 1rem; top: 2rem; background: #333; opacity: 0.75; border-left: 2px solid #3f3; border-right: 2px solid #3f3; border-bottom: 2px solid #3f3;}
+			#neoScreenHeading {position: fixed; width: 32rem; top: 0.5rem; right: 1rem; color: #fff; text-align: left; background: #444; border-top: 2px solid #3f3; border-left: 2px solid #3f3; border-right: 2px solid #3f3; padding: 0.25rem 1rem; font-size: 0.8rem; font-family: courier}
+
+
+			.clear { clear: both; }
+			.command {margin-top: 0.8em; font-family: courier; padding: 1em; overflow: auto; background: #000; color: limegreen; width: 100%; height: 1em; font-size: 0.8em; }
+			.cmd { color: #fff; }
+			.prompt { color: green; }
+			#matrix .Morpheus {font-weight: bold; color: darkmagenta; }
+			#matrix .Neo {font-weight: bold; color: green; }
+			#matrix a {color: greenyellow;}
 		</style>
 
 		<!-- sole.js including the qunit generator plugin -->
@@ -31,55 +55,27 @@
 		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
 	</head>
 	<body>
-
-		<!-- <h1>sole.js matrix debugger</h1> -->
-
-		<style>
-			html,body {margin: 0; padding: 0; background: #000;}
-			.cf:before, .cf:after {content: " "; display: table; }
-			.cf:after {clear: both; }
-			.cf {*zoom: 1; }
-
-			.matrix {font-family: courier; padding: 1rem; overflow: auto; background: #000; color: limegreen; font-size: 0.8em; }
-			/*.matrix {width: 32em; height: 12em;}*/
-			.surround {width: 100%; height: 100%;
-			margin:0 auto; position:relative; }
-			
-
-			#debugMatrix {position: fixed; width: 32rem; height: 16rem; right: 1rem; top: 2rem; background: #333; opacity: 0.75; border-left: 2px solid #3f3; border-right: 2px solid #3f3; border-bottom: 2px solid #3f3;}
-			#neoScreenHeading {position: fixed; width: 32rem; top: 0.5rem; right: 1rem; color: #fff; text-align: left; background: #444; border-top: 2px solid #3f3; border-left: 2px solid #3f3; border-right: 2px solid #3f3; padding: 0.25rem 1rem; font-size: 0.8rem; font-family: courier}
-
-
-			.clear { clear: both; }
-			.command {margin-top: 0.8em; font-family: courier; padding: 1em; overflow: auto; background: #000; color: limegreen; width: 100%; height: 1em; font-size: 0.8em; }
-			.cmd { color: #fff; }
-			.prompt { color: green; }
-			#matrix .Morpheus {font-weight: bold; color: darkmagenta; }
-			#matrix .Neo {font-weight: bold; color: green; }
-		</style>
-
-		<p>
-			<div class="surround matrix">
-				<div id="matrix" class=""></div>
-			</div>
-			<div id="neoScreenHeading" class="hide">Neo terminal</div>
-			<div id="debugMatrix" class="matrix hide"></div>
-			<div class="clear"></div>
-			<div id="debugMatrixCommand" class="cf command hide"></div>
-		</p>
+		<div class="surround matrix">
+			<div id="matrix" class=""></div>
+		</div>
+		<div id="neoScreenHeading" class="hide">Neo terminal</div>
+		<div id="debugMatrix" class="matrix hide"></div>
+		<div class="clear"></div>
+		<div id="links" class="matrix">
+			<a target="_blank" href="https://github.com/jsguy/solejs">Github</a>
+			<a target="_blank" href="https://www.npmjs.com/package/sole">NPM</a>
+		</div>
 
 		<script>
-			// var betweenMessageDelay = 1000,
-			// 	delayAnim = 120,
-			// 	delayVariance = 300;
 			var betweenMessageDelay = 500,
 				delayAnim = 10,
-				delayVariance = 10,
+				delayVariance = 100,
 				sole;
 
 			// Teletype plugin for jQuery
 			$.fn.teletype = function(opts){
 			    var $this = this,
+			    	$target,
 			        defaults = {
 			            delayAnim: delayAnim,
 			            delayVariance: delayVariance,
@@ -92,7 +88,8 @@
 						return (settings.delayAnim + ((Math.random() > 0.5)? 1: -1) * (Math.random() * settings.delayVariance));
 			        },
 			        typeLetter = function(){
-			            $this.html($this.html() + charList[count]);
+			            //$this.html($this.html() + charList[count]);
+			            $target.html($target.html() + charList[count]);
 			            if(count < charList.length - 1) {
 					        setTimeout(typeLetter, getDelay());
 			            } else {
@@ -105,7 +102,8 @@
 			            count += 1;
 			        };
 
-			    //console.log('TT', settings);
+			    $this.html($this.html() + "<span class='text'><span>");
+			    $target = $this.find(".text").last();
 
 		        setTimeout(typeLetter, getDelay());
 			};
@@ -141,13 +139,13 @@
 				{ cmd: "sole.get().length" },
 				{ who: "Neo", text: "Lots of entries..." },
 				{ who: "Morpheus", text: "Yep, the matrix is .. large" },
-				{ who: "Neo", text: "Let's try a filter..." },
-				{ cmd: "sole.filter('INFO').get().length" },
-				{ who: "Neo", text: "Hmm... maybe look for errors..." },
+				{ who: "Neo", text: "Let's try a filter...", pause: 1000 },
+				{ cmd: "sole.filter('INFO').get().length", pause: 2000 },
+				{ who: "Neo", text: "Hmm... maybe look for errors...", pause: 1000 },
 				{ cmd: "sole.filter({ type: 'error' }).get().length" },
-				{ who: "Neo", text: "Ahh, there we go!" },
+				{ who: "Neo", text: "Ahh, there we go!", pause: 2000 },
 				{ cmd: "sole.filter({ type: 'error' })[0].args" },
-				{ who: "Neo", text: "Glitch stack overflow - that means..." },
+				{ who: "Neo", text: "Glitch stack overflow - that means...", pause: 2000 },
 				{ who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
 				{ who: "Morpheus", text: "Uh, this isn't really important, never mind, let's just reboot it and wipe the log." },
 				//{ cmd: "sole.filter({ type: 'error' }).get().length" },
@@ -165,20 +163,28 @@
 				{ who: "Morpheus", text: "Yeah.", pause: 2000 },
 				{ who: "Neo", text: "Let's never speak of this again.", pause: 1000 },
 				{ who: "Morpheus", text: "Agreed. Thanks, sole.js", pause: 1500 },
-				{ who: "Morpheus", text: "Thanks a lot." }
+				{ who: "Morpheus", text: "Thanks a lot." },
+				{ who: "Neo", text: "Get the latest version [here], and see the [fulllog].", transform: {
+					"here": "<a target='_blank' href='https://github.com/jsguy/solejs'>here</a>",
+					"fulllog": "<a target='_blank' href='matrixlog.json'>full log we just used</a>"
+				} },
 			],
 			theMatrix,
 			count = 0,
 			showTexts = function(texts, callback) {
 
 				if(texts[count].who) {
-
 					$('#matrix').html($('#matrix').html() + "<span class='who "+texts[count].who+"'>" + texts[count].who + ": </span>");
 
 					$('#matrix').teletype({
 						text: texts[count].text,
 						pause:  texts[count].pause,
 						callback: function() {
+							if(texts[count].transform) {
+								$.each(texts[count].transform, function(k,v){
+									$('#matrix .text').last().html($('#matrix .text').last().html().split("[" + k + "]").join(v));
+								});
+							}
 
 							$.scrollTo($('#matrix .who').last(), 500);
 
@@ -196,7 +202,6 @@
 						}
 					});
 				} else if(texts[count].cmd) {
-					//var result = execute(texts[count].cmd);
 					execCmd(texts[count].cmd, function() {
 						setTimeout(function() {
 				            if(count < texts.length - 1) {
@@ -217,7 +222,6 @@
 			},
 			execCmd = function(cmd, callback) {
 				//	Show command
-				$('#debugMatrixCommand').append("<br/>" + cmd);
 				$('#debugMatrix').append("<br/><br/><span class='prompt'>$ </span><span class='cmd'>" +cmd+ ";</span><span class='end'></span>");
 
 				$('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 100);
@@ -232,18 +236,8 @@
 				}
 			};
 
-			var gomatrix = function() {
+			var init = function() {
 				showTexts(startTexts, function() {
-					var i, list = [];
-
-					for(i = 0; i < theMatrix.length; i += 1) {
-						//list.push(JSON.stringify(theMatrix[i]))
-					}
-
-					//	TODO: This should be shown when the user click the flashing "click here to continue..."
-
-//					$('#debugMatrix').html(list.join(",<br/>") + "<span class='end'></span>").show().slideDown('slow');
-
 					$('#debugMatrix').html("<span class='end'></span>").show().slideDown('slow');
 
 					$('#neoScreenHeading').show();
@@ -274,9 +268,9 @@
 						matches: theMatrix
 					});
 
-					console.log('Matrix v 3.2.4 loaded');
+					console.log('Matrix v 0.2.10 loaded');
 
-					gomatrix();
+					init();
 
 				}
 			})
