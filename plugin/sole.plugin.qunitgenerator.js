@@ -24,8 +24,8 @@ Sole.plugin("qunitgenerator", function(args) {
 					}}
 					return tmpl;
 				},
-				okTmpl = "ok({{obj1}} === {{obj2}}, \"{{text}}\");",
-				deepEqualTmpl = "deepEqual({{obj1}}, {{obj2}}, \"{{text}}\");";
+				okTmpl = "assert.ok({{obj1}} === {{obj2}}, \"{{text}}\");",
+				deepEqualTmpl = "assert.deepEqual({{obj1}}, {{obj2}}, \"{{text}}\");";
 
 			//	Iterate on values and create tests
 			for(h = 0; h < values.length; h += 1) {
@@ -57,7 +57,8 @@ Sole.plugin("qunitgenerator", function(args) {
 				}
 				count += 1;
 
-				tempTest = "test( \""+obj.tags.join(".")+"\", " + tempTests.length + ", function() {\n";
+				//tempTest = "QUnit.test( \""+obj.tags.join(".")+"\", " + tempTests.length + ", function(assert) {\n";
+				tempTest = "QUnit.test( \""+obj.tags.join(".")+"\", function(assert) {\n";
 				for(i = 0; i < tempTests.length; i += 1) {
 					tempTest += "\t" + tempTests[i] + "\n";
 				}
