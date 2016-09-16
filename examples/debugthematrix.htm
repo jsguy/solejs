@@ -125,8 +125,7 @@
 				{ who: "Morpheus", text: "Um, this is kind of embarrassing ...", pause: 1000 },
 				{ who: "Morpheus", text: "I was running an, um, \"simulation\", and The Matrix has, um... Crashed!.." },
 				{ who: "Morpheus", text: "I need you to debug it!!", pause: 2000 },
-				{ who: "Neo", text: "Have you tried turning it off and on again?", pause: 2000 },
-				{ who: "Neo", text: "..." },
+				{ who: "Neo", text: "Have you tried turning it off and on again?", pause: 1000 },
 				{ who: "Morpheus", text: ". . .-." },
 				{ who: "Morpheus", text: ". . |U|" },
 				{ who: "Morpheus", text: ". . | |" },
@@ -151,7 +150,7 @@
 				{ who: "Morpheus", text: "Yep, the matrix is .. large" },
 				{ who: "Neo", text: "Let's try a filter...", pause: 1000 },
 				{ cmd: "sole.filter('INFO').get().length", pause: 2000 },
-				{ who: "Neo", text: "Hmmm... Maybe look for errors...", pause: 1000 },
+				{ who: "Neo", text: "Hmm... Maybe look for errors...", pause: 1000 },
 				{ cmd: "sole.filter({ type: 'error' }).get().length" },
 				{ who: "Neo", text: "Ahh, there we go!", pause: 2000 },
 				{ cmd: "sole.filter({ type: 'error' })[0].args" },
@@ -159,7 +158,7 @@
 				{ who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
 				{ who: "Morpheus", text: "Um, this isn't really important, never mind, let's just reboot it and wipe the log." },
 				//{ cmd: "sole.filter({ type: 'error' }).get().length" },
-				{ who: "Neo", text: "Naw. It's just getting interesting, let's see what overflowed..." },
+				{ who: "Neo", text: "Naah. It's just getting interesting, let's see what overflowed..." },
 				{ cmd: "sole.filter('repeat', {min: 5}).length" },
 				{ who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
 				{ who: "Neo", text: "Let me filter and query for the warnings..." },
@@ -174,7 +173,7 @@
 				{ who: "Neo", text: "Let's never speak of this again.", pause: 1000 },
 				{ who: "Morpheus", text: "Agreed. Thanks, sole.js", pause: 1500 },
 				{ who: "Morpheus", text: "Thanks a lot." },
-				{ who: "LadyNRed", text: "Get the latest version [here], and see the [full log we just used], it contains the whole matrix!", transform: {
+				{ who: "LadyNRed", text: "Get the latest version [here], or check out the [full log we just used], it contains the whole matrix!", transform: {
 					"here": "<a target='_blank' href='https://github.com/jsguy/solejs'>here</a>",
 					"full log we just used": "<a target='_blank' href='matrixlog.json'>full log we just used</a>"
 				} },
