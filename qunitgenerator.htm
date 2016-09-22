@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="/libs/jquery-1.9.1.js"></script>
+		<!-- Qunit stuff -->
+		<script src="/libs/qunit-master/qunit/qunit.js"></script>
+		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+		<style>
+			.codeBox 		{ width: 800px; height: 260px; }
+			.hide 			{ display: none }
+			label 			{ font-weight: bold; min-width: 300px; display: block; }
+		</style>
+
+		<!-- sole.js including the qunit generator plugin -->
+		<script src="../dist/sole-latest.js"></script>
+		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
+	</head>
+	<body>
+
+		<h1>sole.js qUnit test generator</h1>
+		<p>
+			This generator will create a set of qUnit tests based on sole.js output, eg: sole.log, sole.warn, etc... For good results, log the input values and return values of a function, and warn at any conditional execution paths. 
+		</p>
+		<div>
+			<label><span>Exposed sole instance</span></label>
+			<input id="soleInstance" type="text" value="sole"/>
+		</div>
+		<div>
+			<label>
+				<input id="useFuncTags" type="checkbox" value="true" checked="checked"/>
+				<span>Use function names as tags</span>
+			</label>
+		</div>
+
+		<div>
+			<div>
+			<label><span>Test code</span></label>
+		</div>
+		<textarea class="codeBox" id="codein">
+function Func(args) {
+	//	Private function - we are naming the function here 
+	var multiply = function multiply(num, times) {
+			sole.log(num, times);
+			return num * times;
+		}, value = multiply(args.num, args.times);
+	this.getValue = function getValue() {
+		sole.log(value);
+		return value;
+	};
+	sole.log("Ran multiply", value);
+};
+
+//	Code we want to test, including any data
+var myFunc = new Func({ num: 9, times: 6 });
+</textarea>
+		</div>
+
+		<button id="generate">Generate tests</button>
+
+		<div id="generatedTests" class="hide">
+			<h2>Generated tests</h2>
+			<textarea class="codeBox" id="codeout"></textarea>
+
+			<h2>Test results</h2>
+			<p>
+				Note: these should always pass, if they don't, something has been misconfigured.
+			</p>
+			<div id="qunit"></div>
+			<div id="qunit-fixture"></div>
+
+		</div>
+
+		<script>
+			//	Where we expose the test values
+			var soleTestValues = [];
+
+			//	Generate the tests
+			$('#generate').click(function() {
+				var useFuncTags = !!($('#useFuncTags:checked').val() == "true");
+
+				sole.clear();
+
+				//$("#qunit").html("");
+				$("qunit-fixture").html("");
+
+				//	See if we want to use the function name tags
+				//	Turn these off if you are going to be using the tests
+				// 	on both minified and non-minified code
+				if(useFuncTags) {
+					sole.setArg('useFuncTags', true);
+				}
+
+				var tempFunc = new Function($('#codein').val()),
+					tempTestFunc, tests, soleInstance, soleInstanceFunc;
+
+				//	Run the code and capture values and tests
+				try{
+					tempFunc.apply(this, []);
+
+					soleInstanceFunc = new Function("return " + $('#soleInstance').val() + ";");
+					soleInstance = soleInstanceFunc.apply(this, []);
+
+					//	Trigger the plugin to collect tests.
+					//	Note: you can optionally turn off testing for tags
+					soleInstance.plugin.trigger('qunitTests', function(testsCreated){
+						tests = testsCreated;
+					}, { testForTags: true } );
+
+					//	Trigger the plugin to collect values.
+					soleInstance.plugin.trigger('qunitValues', function(valuesCreated){
+						soleTestValues = valuesCreated;
+					});
+
+					// //	When done - create tests here
+					$('#codeout').val(tests.join("\n"));
+
+					//	Run the tests.
+					tempTestFunc = new Function(tests.join("\n"));
+					tempTestFunc.apply(this, []);
+
+					//	Show the code
+					$('#generatedTests').show('slow');
+
+				} catch(ex) {
+					window.console && console.warn("Could not run your code, error follows");
+					window.console && console.warn(ex);
+				}
+				
+			});
+
+			//	Clear the codeout box on load.
+			$('#codeout').val('');
+
+	    </script>
+	</body>
+</html>

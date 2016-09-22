@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Solejs by jsguy</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Solejs</h1>
+          <h2>the soul of the console</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/jsguy/solejs/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/jsguy/solejs/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/jsguy/solejs" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a name="solejs" class="anchor" href="#solejs"><span class="octicon octicon-link"></span></a>sole.js</h1>
+
+<p><em>the soul of the console.</em></p>
+
+
+
+<p>sole.js is an extension of the console paradigm that includes tagging, filtering, globbing, plugins and event subscription.</p>
+
+<p><strong>Note:</strong> sole.js does <strong>not</strong> override the console, (however there is a plugin for that, if you wish.)</p>
+
+<h1>
+<a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick start</h1>
+
+<ul>
+<li><a href="https://github.com/jsguy/solejs/zipball/master">Download the latest release</a></li>
+<li>Include dist/sole-latest.min.js in your page</li>
+<li>You can now do things like 
+<code>js
+sole.tag('my').log('stuff');
+</code>
+and then later 
+<code>js
+sole.filter('my')
+</code> 
+to get just your stuff!</li>
+<li>Play around with the qunit tests to see how it all works!</li>
+</ul><h1>
+<a name="wait-why-do-i-need-this" class="anchor" href="#wait-why-do-i-need-this"><span class="octicon octicon-link"></span></a>Wait, why do I need this?</h1>
+
+<p>With the ability to use semantic tagging, and filtering output of commands, you can use it for example to create unit tests, catching issues cross-browser, perfomance tuning, troubleshooting, replacing the normal console, etc...
+There is a plugin to generate qunit tests automatically by simply logging information at key points, check out the included qunitgenerator test!</p>
+
+<p><strong>Caveat emptor:</strong> On the surface, having console commands everywhere and tightly coupling your code with a library seems like a bad idea, however sole.js is fully tested, and used in various high-traffic production sites. If you can live with that, read on!</p>
+
+<h1>
+<a name="using-it" class="anchor" href="#using-it"><span class="octicon octicon-link"></span></a>Using it</h1>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Some gibberish"</span><span class="p">);</span>
+<span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"useful"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Useful info"</span><span class="p">);</span>
+<span class="nx">sole</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="s2">"useful"</span><span class="p">).</span><span class="nx">get</span><span class="p">();</span>
+<span class="c1">// [{ args: ["Useful info"], tags: ["useful"], type: "log" }]</span>
+</pre></div>
+
+<p>ie: avoid the gibberish!</p>
+
+<h2>
+<a name="simple-example" class="anchor" href="#simple-example"><span class="octicon octicon-link"></span></a>Simple example</h2>
+
+<p>Say we had a function <code>Func</code> that we wanted to test - we could use sole to capture information from it at key points in the process.</p>
+
+<div class="highlight"><pre><span class="kd">function</span> <span class="nx">Func</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">//  Private function - we are naming the function here </span>
+    <span class="kd">var</span> <span class="nx">multiply</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">multiply</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">times</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">times</span><span class="p">);</span>
+            <span class="k">return</span> <span class="nx">num</span> <span class="o">*</span> <span class="nx">times</span><span class="p">;</span>
+        <span class="p">},</span> <span class="nx">value</span> <span class="o">=</span> <span class="nx">multiply</span><span class="p">(</span><span class="nx">args</span><span class="p">.</span><span class="nx">num</span><span class="p">,</span> <span class="nx">args</span><span class="p">.</span><span class="nx">times</span><span class="p">);</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">getValue</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">getValue</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nx">value</span><span class="p">;</span>
+    <span class="p">};</span>
+    <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Ran multiply"</span><span class="p">,</span> <span class="nx">value</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="c1">//  Code we want to test, including any data</span>
+<span class="kd">var</span> <span class="nx">myFunc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Func</span><span class="p">({</span> <span class="nx">num</span><span class="o">:</span> <span class="mi">9</span><span class="p">,</span> <span class="nx">times</span><span class="o">:</span> <span class="mi">6</span> <span class="p">});</span>
+</pre></div>
+
+<p>sole will now contain the following:</p>
+
+<div class="highlight"><pre><span class="p">[</span>
+    <span class="p">{</span><span class="s2">"type"</span><span class="o">:</span><span class="s2">"log"</span><span class="p">,</span><span class="s2">"tags"</span><span class="o">:</span><span class="p">[],</span><span class="s2">"args"</span><span class="o">:</span><span class="p">{</span><span class="s2">"0"</span><span class="o">:</span><span class="mi">9</span><span class="p">,</span><span class="s2">"1"</span><span class="o">:</span><span class="mi">6</span><span class="p">}},</span>
+    <span class="p">{</span><span class="s2">"type"</span><span class="o">:</span><span class="s2">"log"</span><span class="p">,</span><span class="s2">"tags"</span><span class="o">:</span><span class="p">[],</span><span class="s2">"args"</span><span class="o">:</span><span class="p">{</span><span class="s2">"0"</span><span class="o">:</span><span class="s2">"Ran multiply"</span><span class="p">,</span><span class="s2">"1"</span><span class="o">:</span><span class="mi">54</span><span class="p">}}</span>
+<span class="p">]</span>
+</pre></div>
+
+<p>You can use this to test that the output result matches the given input, ie: Func received 9, 6 and returned 54, or in other words: 9 x 6 = 54.</p>
+
+<h2>
+<a name="tagging" class="anchor" href="#tagging"><span class="octicon octicon-link"></span></a>Tagging</h2>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="nx">yourTag</span><span class="p">)</span>
+</pre></div>
+
+<p>Where yourTag is one of</p>
+
+<ul>
+<li>
+<code>string</code> most basic form of use</li>
+<li>
+<code>array</code> alternatively pass in an array of tags</li>
+</ul><p>tag is chainable, so you can do things like:</p>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"blah"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"something"</span><span class="p">).</span><span class="nx">get</span><span class="p">();</span>
+<span class="c1">// [{ args: ["something], tags: ["blah"], type: "log", time: date }]</span>
+</pre></div>
+
+<p><strong>Note:</strong> Tags are persistent, so once you set a tag, it will be reused for further messages.</p>
+
+<h2>
+<a name="globbing" class="anchor" href="#globbing"><span class="octicon octicon-link"></span></a>Globbing</h2>
+
+<p>Say you had:</p>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"fruit.apple"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"We have an apple"</span><span class="p">);</span>
+<span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"fruit.apple.green"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"We have a green apple"</span><span class="p">);</span>
+</pre></div>
+
+<p>If you run</p>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">glob</span><span class="p">(</span><span class="s2">"fruit.apple"</span><span class="p">).</span><span class="nx">length</span>
+</pre></div>
+
+<p>Returns 1 item</p>
+
+<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">glob</span><span class="p">(</span><span class="s2">"fruit.apple*"</span><span class="p">).</span><span class="nx">length</span>
+</pre></div>
+
+<p>Returns 2 items</p>
+
+<h2>
+<a name="filtering" class="anchor" href="#filtering"><span class="octicon octicon-link"></span></a>Filtering</h2>
+
+<h1>
+<a name="copyright-and-license" class="anchor" href="#copyright-and-license"><span class="octicon octicon-link"></span></a>Copyright and license</h1>
+
+<p>Copyright 2013 jsguy (Mikkel Bergmann)</p>
+
+<p>Licensed under the MIT License</p>
+        </section>
+
+        <footer>
+          Solejs is maintained by <a href="https://github.com/jsguy">jsguy</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>

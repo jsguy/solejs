@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<link rel="stylesheet" href="lib/qunit.css" type="text/css" media="screen" />
+		<script src="lib/qunit.js"></script>
+		
+		<script src="../dist/ulib-latest.js"></script>
+		<script src="../../solejs/dist/sole-latest.js"></script>
+	</head>
+<body>
+	
+	<h1 id="qunit-header">ulib.dist / pubsub</h1>
+	<h2 id="qunit-banner"></h2>
+	<h2 id="qunit-userAgent"></h2>
+	<ol id="qunit-tests"></ol>
+	
+    <script>
+    	//	The code
+		var em = new ulib.Pubsub();
+
+		sole.log('Num events ' + em.getEventTypes().length);
+		em.addEventType({ type: 'loaded' });
+		sole.log('Num events ' + em.getEventTypes().length);
+		sole.log('Has loaded event ' + em.hasEvent('loaded'));
+		em.on('loaded', function(o) {
+			sole.log('loaded ran ' + o);
+		});
+		em.trigger('loaded', 1);
+		
+		em.removeEventType('loaded');
+		sole.log('Num events ' + em.getEventTypes().length);
+		sole.log('Has loaded event ' + em.hasEvent('loaded'));
+    </script>
+    
+    <script>
+    	// The tests
+    	
+    	//	Get all events logged and the length
+    	var ev = sole.get(),
+    		len = sole.get().length;
+
+		test( "Add event type", function() {
+			expect(2);
+			ok( ev[0].args[0] === "Num events 0" && ev[1].args[0] === "Num events 1", "Ensure that we can add event types" );
+			ok( ev[2].args[0] === "Has loaded event true", "Ensure that the added event exists" );
+		} );
+    	
+		test( "Trigger event", function() {
+			expect(1);
+			ok( ev[3].args[0] === "loaded ran 1", "Ensure that we can run the event" );
+		} );
+    	
+		test( "Remove event type", function() {
+			expect(2);
+			ok( ev[4].args[0] === "Num events 0", "Ensure that the number of events are correct" );
+			ok( ev[5].args[0] === "Has loaded event false", "Ensure that we no longer have access to the removed event" );
+		} );
+    </script>
+    
+</body>
+</html>

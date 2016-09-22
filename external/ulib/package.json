@@ -1,0 +1,63 @@
+{
+  "name": "ulib",
+  "version": "0.1.4",
+  "author": {
+    "name": "JavaScript guy",
+    "email": "mikkel@jsguy.com"
+  },
+  "description": "ulib - micro library for making other libraries",
+  "contributors": [
+    {
+      "name": "Mikkel Bergmann",
+      "email": "mikkel@jsguy.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsguy/ulib.git"
+  },
+  "keywords": [
+    "library",
+    "micro",
+    "api",
+    "json",
+    "useful",
+    "jsguy"
+  ],
+  "devDependencies": {
+    "grunt": "0.4.x",
+    "grunt-cli": "0.1.9",
+    "grunt-contrib-uglify": "0.2.x",
+    "grunt-contrib-jshint": "0.6.x",
+    "grunt-contrib-qunit": "0.2.x",
+    "grunt-contrib-watch": "0.4.x",
+    "grunt-contrib-concat": "0.3.x"
+  },
+  "license": "MIT",
+  "readme": "# ulib\n_micro library for making other libraries_\n\n# Copyright and license\n\nCopyright 2013 jsguy (Mikkel Bergmann)\n\nLicensed under the MIT License\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/jsguy/ulib/issues"
+  },
+  "_id": "ulib@0.1.4",
+  "dist": {
+    "shasum": "614209467d1c27e8a0dd9edafae2c3f343f8f291",
+    "tarball": "http://registry.npmjs.org/ulib/-/ulib-0.1.4.tgz"
+  },
+  "_from": "ulib@*",
+  "_npmVersion": "1.3.8",
+  "_npmUser": {
+    "name": "jsguy",
+    "email": "mikkel@jsguy.com"
+  },
+  "maintainers": [
+    {
+      "name": "jsguy",
+      "email": "mikkel@jsguy.com"
+    }
+  ],
+  "directories": {},
+  "_shasum": "614209467d1c27e8a0dd9edafae2c3f343f8f291",
+  "_resolved": "https://registry.npmjs.org/ulib/-/ulib-0.1.4.tgz",
+  "homepage": "https://github.com/jsguy/ulib#readme"
+}

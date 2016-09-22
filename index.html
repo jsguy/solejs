@@ -1,174 +1,282 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset='utf-8'>
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <title>Solejs by jsguy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="external/jquery-3.1.0.js"></script>
+    <script src="external/jquery.scrollTo/jquery.scrollTo.js"</script>
+    <!-- Qunit stuff -->
+    <script src="external/qunit-2.0.1.js"></script>
+    <link rel="stylesheet" type="text/css" href="external/qunit-2.0.1.css">
+    <style>
+      html,body {margin: 0; padding: 0; background: #000;}
+      .codeBox    { width: 800px; height: 260px; }
+      .hide       { display: none }
+      label       { font-weight: bold; min-width: 300px; display: block; }
+      .cf:before, .cf:after {content: " "; display: table; }
+      .cf:after {clear: both; }
+      .cf {*zoom: 1; }
+
+      .matrix {font-family: courier; padding: 1rem; overflow: auto; background: #000; color: limegreen; font-size: 0.8em; }
+      .surround {width: 100%; height: 100%;
+      margin:0 auto; position:relative; }
+      
+      #links {position: fixed; top: 0; left: 20rem; background: transparent; padding: 0;}
+
+      #links a {color: turquoise;}
+
+      #debugMatrix {position: fixed; width: 32rem; height: 16rem; right: 1rem; top: 2rem; background: #333; opacity: 0.75; border-left: 2px solid #3f3; border-right: 2px solid #3f3; border-bottom: 2px solid #3f3;}
+      #neoScreenHeading {position: fixed; width: 32rem; top: 0.5rem; right: 1rem; color: #fff; text-align: left; background: #444; border-top: 2px solid #3f3; border-left: 2px solid #3f3; border-right: 2px solid #3f3; padding: 0.25rem 1rem; font-size: 0.8rem; font-family: courier}
+
+
+      .clear { clear: both; }
+      .command {margin-top: 0.8em; font-family: courier; padding: 1em; overflow: auto; background: #000; color: limegreen; width: 100%; height: 1em; font-size: 0.8em; }
+      .cmd { color: #fff; }
+      .prompt { color: green; }
+      #matrix .Morpheus {font-weight: bold; color: darkmagenta; }
+      #matrix .Neo {font-weight: bold; color: green; }
+      #matrix a {color: greenyellow;}
+    </style>
+
+    <!-- sole.js including the qunit generator plugin -->
+    <!--
+    <script src="../dist/sole-latest.js"></script>
+    -->
+    
+
+    <script src="external/ulib/src/ulib.pubsub.js"></script>
+    <script src="external/ulib/src/ulib.plugin.js"></script>
+    <script src="external/ulib/src/ulib.cookie.js"></script>
+
+    <script src="dist/sole-latest.js"></script>
+
+
+    <script src="filter/sole.filter.repeat.js"></script>
+
+    <script src="plugin/sole.plugin.qunitgenerator.js"></script>
   </head>
-
   <body>
-    <div id="container">
-      <div class="inner">
-
-        <header>
-          <h1>Solejs</h1>
-          <h2>the soul of the console</h2>
-        </header>
-
-        <section id="downloads" class="clearfix">
-          <a href="https://github.com/jsguy/solejs/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
-          <a href="https://github.com/jsguy/solejs/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
-          <a href="https://github.com/jsguy/solejs" id="view-on-github" class="button"><span>View on GitHub</span></a>
-        </section>
-
-        <hr>
-
-        <section id="main_content">
-          <h1>
-<a name="solejs" class="anchor" href="#solejs"><span class="octicon octicon-link"></span></a>sole.js</h1>
-
-<p><em>the soul of the console.</em></p>
-
-
-
-<p>sole.js is an extension of the console paradigm that includes tagging, filtering, globbing, plugins and event subscription.</p>
-
-<p><strong>Note:</strong> sole.js does <strong>not</strong> override the console, (however there is a plugin for that, if you wish.)</p>
-
-<h1>
-<a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick start</h1>
-
-<ul>
-<li><a href="https://github.com/jsguy/solejs/zipball/master">Download the latest release</a></li>
-<li>Include dist/sole-latest.min.js in your page</li>
-<li>You can now do things like 
-<code>js
-sole.tag('my').log('stuff');
-</code>
-and then later 
-<code>js
-sole.filter('my')
-</code> 
-to get just your stuff!</li>
-<li>Play around with the qunit tests to see how it all works!</li>
-</ul><h1>
-<a name="wait-why-do-i-need-this" class="anchor" href="#wait-why-do-i-need-this"><span class="octicon octicon-link"></span></a>Wait, why do I need this?</h1>
-
-<p>With the ability to use semantic tagging, and filtering output of commands, you can use it for example to create unit tests, catching issues cross-browser, perfomance tuning, troubleshooting, replacing the normal console, etc...
-There is a plugin to generate qunit tests automatically by simply logging information at key points, check out the included qunitgenerator test!</p>
-
-<p><strong>Caveat emptor:</strong> On the surface, having console commands everywhere and tightly coupling your code with a library seems like a bad idea, however sole.js is fully tested, and used in various high-traffic production sites. If you can live with that, read on!</p>
-
-<h1>
-<a name="using-it" class="anchor" href="#using-it"><span class="octicon octicon-link"></span></a>Using it</h1>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Some gibberish"</span><span class="p">);</span>
-<span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"useful"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Useful info"</span><span class="p">);</span>
-<span class="nx">sole</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="s2">"useful"</span><span class="p">).</span><span class="nx">get</span><span class="p">();</span>
-<span class="c1">// [{ args: ["Useful info"], tags: ["useful"], type: "log" }]</span>
-</pre></div>
-
-<p>ie: avoid the gibberish!</p>
-
-<h2>
-<a name="simple-example" class="anchor" href="#simple-example"><span class="octicon octicon-link"></span></a>Simple example</h2>
-
-<p>Say we had a function <code>Func</code> that we wanted to test - we could use sole to capture information from it at key points in the process.</p>
-
-<div class="highlight"><pre><span class="kd">function</span> <span class="nx">Func</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">//  Private function - we are naming the function here </span>
-    <span class="kd">var</span> <span class="nx">multiply</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">multiply</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">times</span><span class="p">)</span> <span class="p">{</span>
-            <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">num</span><span class="p">,</span> <span class="nx">times</span><span class="p">);</span>
-            <span class="k">return</span> <span class="nx">num</span> <span class="o">*</span> <span class="nx">times</span><span class="p">;</span>
-        <span class="p">},</span> <span class="nx">value</span> <span class="o">=</span> <span class="nx">multiply</span><span class="p">(</span><span class="nx">args</span><span class="p">.</span><span class="nx">num</span><span class="p">,</span> <span class="nx">args</span><span class="p">.</span><span class="nx">times</span><span class="p">);</span>
-    <span class="k">this</span><span class="p">.</span><span class="nx">getValue</span> <span class="o">=</span> <span class="kd">function</span> <span class="nx">getValue</span><span class="p">()</span> <span class="p">{</span>
-        <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
-        <span class="k">return</span> <span class="nx">value</span><span class="p">;</span>
-    <span class="p">};</span>
-    <span class="nx">sole</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Ran multiply"</span><span class="p">,</span> <span class="nx">value</span><span class="p">);</span>
-<span class="p">};</span>
-
-<span class="c1">//  Code we want to test, including any data</span>
-<span class="kd">var</span> <span class="nx">myFunc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Func</span><span class="p">({</span> <span class="nx">num</span><span class="o">:</span> <span class="mi">9</span><span class="p">,</span> <span class="nx">times</span><span class="o">:</span> <span class="mi">6</span> <span class="p">});</span>
-</pre></div>
-
-<p>sole will now contain the following:</p>
-
-<div class="highlight"><pre><span class="p">[</span>
-    <span class="p">{</span><span class="s2">"type"</span><span class="o">:</span><span class="s2">"log"</span><span class="p">,</span><span class="s2">"tags"</span><span class="o">:</span><span class="p">[],</span><span class="s2">"args"</span><span class="o">:</span><span class="p">{</span><span class="s2">"0"</span><span class="o">:</span><span class="mi">9</span><span class="p">,</span><span class="s2">"1"</span><span class="o">:</span><span class="mi">6</span><span class="p">}},</span>
-    <span class="p">{</span><span class="s2">"type"</span><span class="o">:</span><span class="s2">"log"</span><span class="p">,</span><span class="s2">"tags"</span><span class="o">:</span><span class="p">[],</span><span class="s2">"args"</span><span class="o">:</span><span class="p">{</span><span class="s2">"0"</span><span class="o">:</span><span class="s2">"Ran multiply"</span><span class="p">,</span><span class="s2">"1"</span><span class="o">:</span><span class="mi">54</span><span class="p">}}</span>
-<span class="p">]</span>
-</pre></div>
-
-<p>You can use this to test that the output result matches the given input, ie: Func received 9, 6 and returned 54, or in other words: 9 x 6 = 54.</p>
-
-<h2>
-<a name="tagging" class="anchor" href="#tagging"><span class="octicon octicon-link"></span></a>Tagging</h2>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="nx">yourTag</span><span class="p">)</span>
-</pre></div>
-
-<p>Where yourTag is one of</p>
-
-<ul>
-<li>
-<code>string</code> most basic form of use</li>
-<li>
-<code>array</code> alternatively pass in an array of tags</li>
-</ul><p>tag is chainable, so you can do things like:</p>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"blah"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"something"</span><span class="p">).</span><span class="nx">get</span><span class="p">();</span>
-<span class="c1">// [{ args: ["something], tags: ["blah"], type: "log", time: date }]</span>
-</pre></div>
-
-<p><strong>Note:</strong> Tags are persistent, so once you set a tag, it will be reused for further messages.</p>
-
-<h2>
-<a name="globbing" class="anchor" href="#globbing"><span class="octicon octicon-link"></span></a>Globbing</h2>
-
-<p>Say you had:</p>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"fruit.apple"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"We have an apple"</span><span class="p">);</span>
-<span class="nx">sole</span><span class="p">.</span><span class="nx">tag</span><span class="p">(</span><span class="s2">"fruit.apple.green"</span><span class="p">).</span><span class="nx">log</span><span class="p">(</span><span class="s2">"We have a green apple"</span><span class="p">);</span>
-</pre></div>
-
-<p>If you run</p>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">glob</span><span class="p">(</span><span class="s2">"fruit.apple"</span><span class="p">).</span><span class="nx">length</span>
-</pre></div>
-
-<p>Returns 1 item</p>
-
-<div class="highlight"><pre><span class="nx">sole</span><span class="p">.</span><span class="nx">glob</span><span class="p">(</span><span class="s2">"fruit.apple*"</span><span class="p">).</span><span class="nx">length</span>
-</pre></div>
-
-<p>Returns 2 items</p>
-
-<h2>
-<a name="filtering" class="anchor" href="#filtering"><span class="octicon octicon-link"></span></a>Filtering</h2>
-
-<h1>
-<a name="copyright-and-license" class="anchor" href="#copyright-and-license"><span class="octicon octicon-link"></span></a>Copyright and license</h1>
-
-<p>Copyright 2013 jsguy (Mikkel Bergmann)</p>
-
-<p>Licensed under the MIT License</p>
-        </section>
-
-        <footer>
-          Solejs is maintained by <a href="https://github.com/jsguy">jsguy</a><br>
-          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
-        </footer>
-
-        
-      </div>
+    <div class="surround matrix">
+      <div id="matrix" class=""></div>
     </div>
+    <div id="neoScreenHeading" class="hide">Neo terminal</div>
+    <div id="debugMatrix" class="matrix hide"></div>
+    <div class="clear"></div>
+    <div id="links" class="matrix">
+      <a target="_blank" href="https://github.com/jsguy/solejs">Github</a>
+      <a target="_blank" href="https://www.npmjs.com/package/sole">NPM</a>
+    </div>
+
+    <script>
+      var betweenMessageDelay = 500,
+        delayAnim = 10,
+        delayVariance = 100,
+        sole;
+
+      // Teletype plugin for jQuery
+      $.fn.teletype = function(opts){
+          var $this = this,
+            $target,
+              defaults = {
+                  delayAnim: delayAnim,
+                  delayVariance: delayVariance,
+                  pause: 0
+              },
+              settings = $.extend(defaults, opts),
+              count = 0,
+              charList = settings.text.split(''),
+              getDelay = function() {
+            return (settings.delayAnim + ((Math.random() > 0.5)? 1: -1) * (Math.random() * settings.delayVariance));
+              },
+              typeLetter = function(){
+                  //$this.html($this.html() + charList[count]);
+                  $target.html($target.html() + charList[count]);
+                  if(count < charList.length - 1) {
+                  setTimeout(typeLetter, getDelay());
+                  } else {
+                    if($.isFunction(settings.callback)) {
+                      setTimeout(function(){
+                        settings.callback();
+                      }, settings.pause);
+                    }
+                  }
+                  count += 1;
+              };
+
+          $this.html($this.html() + "<span class='text'><span>");
+          $target = $this.find(".text").last();
+
+            setTimeout(typeLetter, getDelay());
+      };
+
+      var
+      startTexts = [
+        { who: "Morpheus", text: "Wake up, Neo...", pause: 400 },
+        { who: "Morpheus", text: "The Matrix has ... ", pause: 400 },
+        { who: "Morpheus", text: "Uh, this is kind of embarrassing ...", pause: 1000 },
+        { who: "Morpheus", text: "I was running an, uh, \"simulation\", and The Matrix has, um... Crashed!.." },
+        { who: "Morpheus", text: "I need you to debug it!!", pause: 2000 },
+        { who: "Neo", text: "Have you tried turning it off and on again?", pause: 2000 },
+        { who: "Neo", text: "..." },
+        { who: "Morpheus", text: ". . .-." },
+        { who: "Morpheus", text: ". . |U|" },
+        { who: "Morpheus", text: ". . | |" },
+        { who: "Morpheus", text: ". . | |" },
+        { who: "Morpheus", text: ". ._| |_" },
+        { who: "Morpheus", text: ". | | | |-." },
+        { who: "Morpheus", text: "./| . . ` |" },
+        { who: "Morpheus", text: "| | . . . |" },
+        { who: "Morpheus", text: "| . . . . |" },
+        { who: "Morpheus", text: "\\ . . . . /" },
+        { who: "Morpheus", text: ".| . . . |" },
+        { who: "Morpheus", text: ".| . . . |" },
+        { who: "Neo", text: "Hehe.", pause: 1000 },
+        { who: "Neo", text: "Did you install sole.js like I asked the other day?" },
+        { who: "Morpheus", text: "Yeah, the latest version, why?" },
+        { who: "Neo", text: "Great. This is going to be easy :)" },
+        { who: "Neo", text: "Let me bring up a terminal...", pause: 1500 }
+      ],
+      debugTexts = [
+        { cmd: "sole.get().length" },
+        { who: "Neo", text: "Lots of entries..." },
+        { who: "Morpheus", text: "Yep, the matrix is .. large" },
+        { who: "Neo", text: "Let's try a filter...", pause: 1000 },
+        { cmd: "sole.filter('INFO').get().length", pause: 2000 },
+        { who: "Neo", text: "Hmm... maybe look for errors...", pause: 1000 },
+        { cmd: "sole.filter({ type: 'error' }).get().length" },
+        { who: "Neo", text: "Ahh, there we go!", pause: 2000 },
+        { cmd: "sole.filter({ type: 'error' })[0].args" },
+        { who: "Neo", text: "Glitch stack overflow - that means...", pause: 2000 },
+        { who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
+        { who: "Morpheus", text: "Uh, this isn't really important, never mind, let's just reboot it and wipe the log." },
+        //{ cmd: "sole.filter({ type: 'error' }).get().length" },
+        { who: "Neo", text: "Nah, it's just getting interesting, let's see what overflowed..." },
+        { cmd: "sole.filter('repeat', {min: 5}).length" },
+        { who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
+        { who: "Neo", text: "Let me query for the warnings..." },
+        { cmd: "sole.filter('repeat', {min: 5}).query({type: 'warn'})[0].args" },
+        { who: "Morpheus", text: "Oh that, hehe ... How weird. But like I said, never mind, right?" },
+
+        { who: "Neo", text: "That is weird... I can probably query it for repeated logs..." },
+        { cmd: "sole.filter('repeat', {min: 5}).query({type: 'log'})[0].args" },
+        { who: "Neo", text: "Oh...", pause: 2000 },
+        { who: "Neo", text: "Well that's awkward.", pause: 2000 },
+        { who: "Morpheus", text: "Yeah.", pause: 2000 },
+        { who: "Neo", text: "Let's never speak of this again.", pause: 1000 },
+        { who: "Morpheus", text: "Agreed. Thanks, sole.js", pause: 1500 },
+        { who: "Morpheus", text: "Thanks a lot." },
+        { who: "Neo", text: "Get the latest version [here], and see the [fulllog].", transform: {
+          "here": "<a target='_blank' href='https://github.com/jsguy/solejs'>here</a>",
+          "fulllog": "<a target='_blank' href='matrixlog.json'>full log we just used</a>"
+        } },
+      ],
+      theMatrix,
+      count = 0,
+      showTexts = function(texts, callback) {
+
+        if(texts[count].who) {
+          $('#matrix').html($('#matrix').html() + "<span class='who "+texts[count].who+"'>" + texts[count].who + ": </span>");
+
+          $('#matrix').teletype({
+            text: texts[count].text,
+            pause:  texts[count].pause,
+            callback: function() {
+              if(texts[count].transform) {
+                $.each(texts[count].transform, function(k,v){
+                  $('#matrix .text').last().html($('#matrix .text').last().html().split("[" + k + "]").join(v));
+                });
+              }
+
+              $.scrollTo($('#matrix .who').last(), 500);
+
+              setTimeout(function() {
+                $('#matrix').html($('#matrix').html() + "<br/>");
+                      if(count < texts.length - 1) {
+                        count += 1;
+                      showTexts(texts, callback);
+                      } else {
+                        if($.isFunction(callback)) {
+                          callback();
+                        }
+                      }
+              }, betweenMessageDelay);
+            }
+          });
+        } else if(texts[count].cmd) {
+          execCmd(texts[count].cmd, function() {
+            setTimeout(function() {
+                    if(count < texts.length - 1) {
+                      count += 1;
+                    showTexts(texts, callback);
+                    } else {
+                      if($.isFunction(callback)) {
+                        callback();
+                      }
+                    }
+            }, 100);
+          });
+        }
+
+      },
+      execute = function(str) {
+        return (new Function("return (" + str + ")")());
+      },
+      execCmd = function(cmd, callback) {
+        //  Show command
+        $('#debugMatrix').append("<br/><br/><span class='prompt'>$ </span><span class='cmd'>" +cmd+ ";</span><span class='end'></span>");
+
+        $('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 100);
+        var result = execute(cmd);
+        //  Show result
+        $('#debugMatrix').append("<br/><span class='cmdResult'>" + result + "</span><span class='end'></span>");
+        //  Scroll to the end
+        $('#debugMatrix').scrollTo($('#debugMatrix .end').last(), 200);
+
+        if($.isFunction(callback)) {
+          callback();
+        }
+      };
+
+      var init = function() {
+        showTexts(startTexts, function() {
+          $('#debugMatrix').html("<span class='end'></span>").show().slideDown('slow');
+
+          $('#neoScreenHeading').show();
+
+          $('#debugMatrix')
+            .scrollTo(0)
+            .scrollTo($('#debugMatrix .end'), 3000, function() {
+              //  Now show the commands
+              count = 0;
+              showTexts(debugTexts, function() {
+                console.log("commands done");
+              });
+            });
+        });
+      };
+
+
+      $.ajax({
+        //  Script derived from: http://dc-mrg.english.ucsb.edu/WarnerTeach/E192/matrix/Matrix.script.html
+        url: 'matrixlog.json',
+        success: function(data){
+          theMatrix = JSON.parse(data);
+
+          //  Custom sole object with the matrix logs
+          //  ie: we load in matches, so we can 
+          //  interactively debug them, using sole.js
+          sole = new Sole({
+            matches: theMatrix
+          });
+
+          console.log('Matrix v 0.2.10 loaded');
+
+          init();
+
+        }
+      })
+
+    </script>
+
+
   </body>
 </html>
