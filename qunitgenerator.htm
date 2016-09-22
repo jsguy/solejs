@@ -2,32 +2,46 @@
 <html>
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<script src="/libs/jquery-1.9.1.js"></script>
+		<script src="external/jquery-3.1.0.js"></script>
 		<!-- Qunit stuff -->
-		<script src="/libs/qunit-master/qunit/qunit.js"></script>
-		<link rel="stylesheet" type="text/css" href="/libs/qunit-master/qunit/qunit.css">
+		<script src="external/qunit-2.0.1.js"></script>
+		<link rel="stylesheet" type="text/css" href="external/qunit-2.0.1.css">
 		<style>
+			html,body{font-size: 62.5%;}
+
+			body {background:#222; color:#ccc; font:12px/16px "Lucida Grande",sans-serif; margin:0 auto; max-width:1024px; min-width:800px; padding:24px; position:relative; }
+
+			button {padding: 0.5rem 1.5rem; border: 1px solid green; border-radius: 1px; background-color: #444; color: #fff;}
+			input,textarea {border: 1px solid green; background-color: #444; color: greenyellow; padding: 0.25rem 1rem;}
+			input:focus, textarea:focus, button:focus {outline: none;}
+
 			.codeBox 		{ width: 800px; height: 260px; }
 			.hide 			{ display: none }
-			label 			{ font-weight: bold; min-width: 300px; display: block; }
+			label.above 	{ font-weight: bold; min-width: 300px; display: block; margin: 0.25rem 0; }
+
+
 		</style>
 
 		<!-- sole.js including the qunit generator plugin -->
-		<script src="../dist/sole-latest.js"></script>
-		<script src="../plugin/sole.plugin.qunitgenerator.js"></script>
+		<script src="dist/sole-latest.js"></script>
+		<script src="plugin/sole.plugin.qunitgenerator.js"></script>
 	</head>
 	<body>
 
-		<h1>sole.js qUnit test generator</h1>
+		<h1>sole.js QUnit test generator</h1>
 		<p>
-			This generator will create a set of qUnit tests based on sole.js output, eg: sole.log, sole.warn, etc... For good results, log the input values and return values of a function, and warn at any conditional execution paths. 
+			This generator will create a set of qUnit tests based on sole.js output, eg: sole.log, sole.warn, etc... When you run a function or method, be sure to use values that you know works, and give prodictable output each time, otherwise the generated tests will fail.
 		</p>
+		<p>
+			For best results <strong>log</strong> the input values and return values of a function, and <strong>warn</strong> at any conditional execution paths.
+		</p>
+
 		<div>
-			<label><span>Exposed sole instance</span></label>
+			<label class="above"><span>Exposed sole instance</span></label>
 			<input id="soleInstance" type="text" value="sole"/>
 		</div>
 		<div>
-			<label>
+			<label class="above">
 				<input id="useFuncTags" type="checkbox" value="true" checked="checked"/>
 				<span>Use function names as tags</span>
 			</label>
@@ -35,24 +49,29 @@
 
 		<div>
 			<div>
-			<label><span>Test code</span></label>
+			<label class="above"><span>Test code</span></label>
 		</div>
 		<textarea class="codeBox" id="codein">
-function Func(args) {
-	//	Private function - we are naming the function here 
-	var multiply = function multiply(num, times) {
-			sole.log(num, times);
-			return num * times;
-		}, value = multiply(args.num, args.times);
+function calc(type, num1, num2) {
+	var multiply = function multiply(num1, num2) {
+			sole.log("multiply", num1, num2);
+			return num1 * num2;
+		},
+		addTogether = function addTogether(num1, num2) {
+			sole.log("add", num1, num2);
+			return num1 + num2;
+		},
+		value = type == "add"? addTogether(num1, num2): multiply(num1, num2);
+
 	this.getValue = function getValue() {
 		sole.log(value);
 		return value;
 	};
-	sole.log("Ran multiply", value);
+	sole.warn("Calculated " + type, "got", value);
 };
-
-//	Code we want to test, including any data
-var myFunc = new Func({ num: 9, times: 6 });
+//	Code we want to test, including any data - Sole picks up on the names automatically
+calc("multiply", 9, 6);
+calc("add", 2, 2);
 </textarea>
 		</div>
 
@@ -63,9 +82,6 @@ var myFunc = new Func({ num: 9, times: 6 });
 			<textarea class="codeBox" id="codeout"></textarea>
 
 			<h2>Test results</h2>
-			<p>
-				Note: these should always pass, if they don't, something has been misconfigured.
-			</p>
 			<div id="qunit"></div>
 			<div id="qunit-fixture"></div>
 
