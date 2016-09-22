@@ -30,8 +30,12 @@
 
 		<h1>sole.js QUnit test generator</h1>
 		<p>
-			This generator will create a set of qUnit tests based on sole.js output, eg: sole.log, sole.warn, etc... For good results, log the input values and return values of a function, and warn at any conditional execution paths. 
+			This generator will create a set of qUnit tests based on sole.js output, eg: sole.log, sole.warn, etc... When you run a function or method, be sure to use values that you know works, and give prodictable output each time, otherwise the generated tests will fail.
 		</p>
+		<p>
+			For best results <strong>log</strong> the input values and return values of a function, and <strong>warn</strong> at any conditional execution paths.
+		</p>
+
 		<div>
 			<label class="above"><span>Exposed sole instance</span></label>
 			<input id="soleInstance" type="text" value="sole"/>
@@ -48,21 +52,30 @@
 			<label class="above"><span>Test code</span></label>
 		</div>
 		<textarea class="codeBox" id="codein">
-function Calculator(args) {
+function calc(type, num1, num2) {
 	//	Private function - we are naming the function here 
-	var multiply = function multiply(num, multiplier) {
-			sole.log(num, multiplier);
-			return num * multiplier;
-		}, value = multiply(args.num, args.multiplier);
+	var multiply = function multiply(num1, num2) {
+			sole.log("multiply", num1, num2);
+			return num1 * num2;
+		},
+		addTogether = function addTogether(num1, num2) {
+			sole.log("add", num1, num2);
+			return num1 + num2;
+		},
+		value = type == "add"?
+			addTogether(num1, num2): 
+			multiply(num1, num2);
+
 	this.getValue = function getValue() {
 		sole.log(value);
 		return value;
 	};
-	sole.log("Ran multiply", value);
+	sole.warn("Calculated " + type, "got", value);
 };
 
 //	Code we want to test, including any data
-var myCalculator = new Calculator({ num: 9, multiplier: 6 });
+calc("multiply", 9, 6);
+calc("add", 2, 2);
 </textarea>
 		</div>
 
