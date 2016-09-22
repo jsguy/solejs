@@ -731,7 +731,16 @@ var ulib = this.ulib || {};
 
 	//	Expose the cookie function
 	ulib.cookie = cookie;
-}).call(this);;}).call(this.sole);;/*global window, ulib, sole, document, QUnit */
+}).call(this);;}).call(this.sole);
+
+//	Packages
+if (typeof module === "object" && module != null && module.exports) {
+	module.exports = sole;
+} else if (typeof define === "function" && define.amd) {
+	define(function () { return sole })
+} else {
+	(typeof window !== "undefined" ? window : this).sole = sole;
+};/*global window, ulib, sole, document, QUnit */
 /*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, newcap: true, immed: true */
 /*
  * @fileOverview This file contains the main sole functionality.
@@ -787,7 +796,8 @@ var ulib = this.ulib || {};
 		},
 		isObject = function(arg) {
 			return typeof arg === "object" && arg !== null;
-		};
+		},
+		window = typeof window !== "undefined"? window: this;
 
 	/** sole - soul of the console
 	 *

@@ -54,7 +54,8 @@
 		},
 		isObject = function(arg) {
 			return typeof arg === "object" && arg !== null;
-		};
+		},
+		window = typeof window !== "undefined"? window: this;
 
 	/** sole - soul of the console
 	 *

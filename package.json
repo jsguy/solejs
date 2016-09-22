@@ -10,6 +10,7 @@
 	"bin": {
 		"sole": "./dist/sole-latest.min.js"
 	},
+	"main": "./dist/sole-latest.js",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/jsguy/solejs.git"
