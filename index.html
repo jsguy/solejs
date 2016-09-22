@@ -32,14 +32,20 @@
       .command {margin-top: 0.8em; font-family: courier; padding: 1em; overflow: auto; background: #000; color: limegreen; width: 100%; height: 1em; font-size: 0.8em; }
       .cmd { color: #fff; }
       .prompt { color: green; }
+      #matrix .who {width: 5rem; display: inline-block; text-align: right; margin-right: 0.5rem; }
       #matrix .Morpheus {font-weight: bold; color: darkmagenta; }
       #matrix .Neo {font-weight: bold; color: green; }
+      #matrix .LadyNRed {font-weight: bold; color: red; }
+      #matrix .text.Morpheus {color: turquoise; }
+      #matrix .text.Neo {color: inherit; }
+      #matrix .text.LadyNRed {color: coral; }
+
       #matrix a {color: greenyellow;}
     </style>
 
     <!-- sole.js including the qunit generator plugin -->
     <!--
-    <script src="../dist/sole-latest.js"></script>
+    <script src="dist/sole-latest.js"></script>
     -->
     
 
@@ -53,6 +59,10 @@
     <script src="filter/sole.filter.repeat.js"></script>
 
     <script src="plugin/sole.plugin.qunitgenerator.js"></script>
+
+
+    <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
+
   </head>
   <body>
     <div class="surround matrix">
@@ -67,7 +77,7 @@
     </div>
 
     <script>
-      var betweenMessageDelay = 500,
+      var betweenMessageDelay = 3500,
         delayAnim = 10,
         delayVariance = 100,
         sole;
@@ -102,7 +112,7 @@
                   count += 1;
               };
 
-          $this.html($this.html() + "<span class='text'><span>");
+          $this.html($this.html() + "<span class='text "+settings.who+"'><span>");
           $target = $this.find(".text").last();
 
             setTimeout(typeLetter, getDelay());
@@ -112,11 +122,10 @@
       startTexts = [
         { who: "Morpheus", text: "Wake up, Neo...", pause: 400 },
         { who: "Morpheus", text: "The Matrix has ... ", pause: 400 },
-        { who: "Morpheus", text: "Uh, this is kind of embarrassing ...", pause: 1000 },
-        { who: "Morpheus", text: "I was running an, uh, \"simulation\", and The Matrix has, um... Crashed!.." },
+        { who: "Morpheus", text: "Um, this is kind of embarrassing ...", pause: 1000 },
+        { who: "Morpheus", text: "I was running an, um, \"simulation\", and The Matrix has, um... Crashed!.." },
         { who: "Morpheus", text: "I need you to debug it!!", pause: 2000 },
-        { who: "Neo", text: "Have you tried turning it off and on again?", pause: 2000 },
-        { who: "Neo", text: "..." },
+        { who: "Neo", text: "Have you tried turning it off and on again?", pause: 1000 },
         { who: "Morpheus", text: ". . .-." },
         { who: "Morpheus", text: ". . |U|" },
         { who: "Morpheus", text: ". . | |" },
@@ -141,42 +150,56 @@
         { who: "Morpheus", text: "Yep, the matrix is .. large" },
         { who: "Neo", text: "Let's try a filter...", pause: 1000 },
         { cmd: "sole.filter('INFO').get().length", pause: 2000 },
-        { who: "Neo", text: "Hmm... maybe look for errors...", pause: 1000 },
+        { who: "Neo", text: "Hmm... Maybe look for errors...", pause: 1000 },
         { cmd: "sole.filter({ type: 'error' }).get().length" },
         { who: "Neo", text: "Ahh, there we go!", pause: 2000 },
         { cmd: "sole.filter({ type: 'error' })[0].args" },
         { who: "Neo", text: "Glitch stack overflow - that means...", pause: 2000 },
         { who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
-        { who: "Morpheus", text: "Uh, this isn't really important, never mind, let's just reboot it and wipe the log." },
+        { who: "Morpheus", text: "Um, this isn't really important, never mind, let's just reboot it and wipe the log." },
         //{ cmd: "sole.filter({ type: 'error' }).get().length" },
-        { who: "Neo", text: "Nah, it's just getting interesting, let's see what overflowed..." },
+        { who: "Neo", text: "Naah. It's just getting interesting, let's see what overflowed..." },
         { cmd: "sole.filter('repeat', {min: 5}).length" },
         { who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
-        { who: "Neo", text: "Let me query for the warnings..." },
+        { who: "Neo", text: "Let me filter and query for the warnings..." },
         { cmd: "sole.filter('repeat', {min: 5}).query({type: 'warn'})[0].args" },
         { who: "Morpheus", text: "Oh that, hehe ... How weird. But like I said, never mind, right?" },
 
         { who: "Neo", text: "That is weird... I can probably query it for repeated logs..." },
         { cmd: "sole.filter('repeat', {min: 5}).query({type: 'log'})[0].args" },
-        { who: "Neo", text: "Oh...", pause: 2000 },
+        { who: "Neo", text: "Morpheus stares... Oh... ", pause: 2000 },
         { who: "Neo", text: "Well that's awkward.", pause: 2000 },
         { who: "Morpheus", text: "Yeah.", pause: 2000 },
         { who: "Neo", text: "Let's never speak of this again.", pause: 1000 },
         { who: "Morpheus", text: "Agreed. Thanks, sole.js", pause: 1500 },
         { who: "Morpheus", text: "Thanks a lot." },
-        { who: "Neo", text: "Get the latest version [here], and see the [fulllog].", transform: {
+        { who: "LadyNRed", text: "Get the latest version [here], or check out the [full log we just used], it contains the whole matrix!", transform: {
           "here": "<a target='_blank' href='https://github.com/jsguy/solejs'>here</a>",
-          "fulllog": "<a target='_blank' href='matrixlog.json'>full log we just used</a>"
+          "full log we just used": "<a target='_blank' href='matrixlog.json'>full log we just used</a>"
         } },
       ],
       theMatrix,
       count = 0,
+      rv = typeof responsiveVoice !== "undefined"? responsiveVoice: {speak: function(){}},
       showTexts = function(texts, callback) {
-
+        var delay = betweenMessageDelay;
         if(texts[count].who) {
           $('#matrix').html($('#matrix').html() + "<span class='who "+texts[count].who+"'>" + texts[count].who + ": </span>");
 
+          //  If we have any alpha, say it, else don't delay it.
+          if(texts[count].text.match(/[a-z]/i)) {
+            var params = {
+              pitch: texts[count].who == "Morpheus"? 0.4: 1.1,
+              rate: texts[count].who == "Neo"? 1.2: 1.1
+            };
+            
+            rv.speak(texts[count].text, texts[count].who == "LadyNRed"? "UK English Female": "US English Male", params);
+          } else {
+            delay = 500;
+          }
+
           $('#matrix').teletype({
+            who: texts[count].who,
             text: texts[count].text,
             pause:  texts[count].pause,
             callback: function() {
@@ -198,7 +221,7 @@
                           callback();
                         }
                       }
-              }, betweenMessageDelay);
+              }, delay);
             }
           });
         } else if(texts[count].cmd) {
@@ -237,21 +260,23 @@
       };
 
       var init = function() {
-        showTexts(startTexts, function() {
-          $('#debugMatrix').html("<span class='end'></span>").show().slideDown('slow');
+        setTimeout(function(){
+          showTexts(startTexts, function() {
+            $('#debugMatrix').html("<span class='end'></span>").show().slideDown('slow');
 
-          $('#neoScreenHeading').show();
+            $('#neoScreenHeading').show();
 
-          $('#debugMatrix')
-            .scrollTo(0)
-            .scrollTo($('#debugMatrix .end'), 3000, function() {
-              //  Now show the commands
-              count = 0;
-              showTexts(debugTexts, function() {
-                console.log("commands done");
+            $('#debugMatrix')
+              .scrollTo(0)
+              .scrollTo($('#debugMatrix .end'), 3000, function() {
+                //  Now show the commands
+                count = 0;
+                showTexts(debugTexts, function() {
+                  console.log("commands done");
+                });
               });
-            });
-        });
+          });
+        }, 2000);
       };
 
 
@@ -259,7 +284,7 @@
         //  Script derived from: http://dc-mrg.english.ucsb.edu/WarnerTeach/E192/matrix/Matrix.script.html
         url: 'matrixlog.json',
         success: function(data){
-          theMatrix = data;
+          theMatrix = JSON.parse(data);
 
           //  Custom sole object with the matrix logs
           //  ie: we load in matches, so we can 
