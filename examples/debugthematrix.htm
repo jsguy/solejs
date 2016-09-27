@@ -9,9 +9,10 @@
 		<link rel="stylesheet" type="text/css" href="external/qunit-2.0.1.css">
 		<style>
 			html,body {margin: 0; padding: 0; background: #000;}
-			.codeBox 		{ width: 800px; height: 260px; }
-			.hide 			{ display: none }
-			label 			{ font-weight: bold; min-width: 300px; display: block; }
+			body {width: 100%; height: 100%;}
+			.codeBox    { width: 800px; height: 260px; }
+			.hide       { display: none }
+			label       { font-weight: bold; min-width: 300px; display: block; }
 			.cf:before, .cf:after {content: " "; display: table; }
 			.cf:after {clear: both; }
 			.cf {*zoom: 1; }
@@ -20,12 +21,13 @@
 			.surround {width: 100%; height: 100%;
 			margin:0 auto; position:relative; }
 			
-			#links {position: fixed; top: 0; left: 20rem; background: transparent; padding: 0;}
+			#links {position: fixed; top: 0; left: 20rem; background: transparent; padding: 0; opacity: 0.33;}
 
 			#links a {color: turquoise;}
 
 			#debugMatrix {position: fixed; width: 32rem; height: 16rem; right: 1rem; top: 2rem; background: #333; opacity: 0.75; border-left: 2px solid #3f3; border-right: 2px solid #3f3; border-bottom: 2px solid #3f3;}
 			#neoScreenHeading {position: fixed; width: 32rem; top: 0.5rem; right: 1rem; color: #fff; text-align: left; background: #444; border-top: 2px solid #3f3; border-left: 2px solid #3f3; border-right: 2px solid #3f3; padding: 0.25rem 1rem; font-size: 0.8rem; font-family: courier}
+
 
 
 			.clear { clear: both; }
@@ -41,6 +43,7 @@
 			#matrix .text.LadyNRed {color: coral; }
 
 			#matrix a {color: greenyellow;}
+			#fullscreen {display: none; background-color: #333; color: #fff; position: fixed; top: 0; left: 0; border: 0; z-index: 10000000;}
 		</style>
 
 		<!-- sole.js including the qunit generator plugin -->
@@ -64,7 +67,8 @@
 		<script src='https://code.responsivevoice.org/responsivevoice.js'></script>
 
 	</head>
-	<body>
+	<body id="body">
+		<button id="fullscreen">Initialise the matrix...</button>
 		<div class="surround matrix">
 			<div id="matrix" class=""></div>
 		</div>
@@ -151,13 +155,12 @@
 				{ who: "Neo", text: "Let's try a filter...", pause: 1000 },
 				{ cmd: "sole.filter('INFO').get().length", pause: 2000 },
 				{ who: "Neo", text: "Hmm... Maybe look for errors...", pause: 1000 },
-				{ cmd: "sole.filter({ type: 'error' }).get().length" },
+				{ cmd: "sole.filter({type: 'error'}).get().length" },
 				{ who: "Neo", text: "Ahh, there we go!", pause: 2000 },
-				{ cmd: "sole.filter({ type: 'error' })[0].args" },
+				{ cmd: "sole.filter({type: 'error'})[0].args" },
 				{ who: "Neo", text: "Glitch stack overflow - that means...", pause: 2000 },
 				{ who: "Morpheus", text: "...Something was repeated too many times, causing a glitch... ooh...." },
 				{ who: "Morpheus", text: "Um, this isn't really important, never mind, let's just reboot it and wipe the log." },
-				//{ cmd: "sole.filter({ type: 'error' }).get().length" },
 				{ who: "Neo", text: "Naah. It's just getting interesting, let's see what overflowed..." },
 				{ cmd: "sole.filter('repeat', {min: 5}).length" },
 				{ who: "Neo", text: "Woah, 31 repeats, wonder what it was?!" },
@@ -284,7 +287,7 @@
 				//	Script derived from: http://dc-mrg.english.ucsb.edu/WarnerTeach/E192/matrix/Matrix.script.html
 				url: 'matrixlog.json',
 				success: function(data){
-					theMatrix = JSON.parse(data);
+					theMatrix = (document.location.host == "localhost")? JSON.parse(data): data;
 
 					//	Custom sole object with the matrix logs
 					//	ie: we load in matches, so we can 
@@ -295,7 +298,8 @@
 
 					console.log('Matrix v 0.2.10 loaded');
 
-					init();
+					//init();
+					$('#fullscreen').show();
 
 				}
 			})
@@ -303,5 +307,48 @@
 		</script>
 
 
+		<script>
+
+
+var pfx = ["webkit", "moz", "ms", "o", ""];
+function RunPrefixMethod(obj, method) {
+	
+	var p = 0, m, t;
+	while (p < pfx.length && !obj[m]) {
+		m = method;
+		if (pfx[p] == "") {
+			m = m.substr(0,1).toLowerCase() + m.substr(1);
+		}
+		m = pfx[p] + m;
+		t = typeof obj[m];
+		if (t != "undefined") {
+			pfx = [pfx[p]];
+			return (t == "function" ? obj[m]() : obj[m]);
+		}
+		p++;
+	}
+
+	};
+
+
+var e = document.getElementById("fullscreen");
+
+e.onclick = function() {
+
+
+
+	if (RunPrefixMethod(document, "FullScreen") || RunPrefixMethod(document, "IsFullScreen")) {
+		RunPrefixMethod(document, "CancelFullScreen");
+	}
+	else {
+		RunPrefixMethod(document.getElementById('body'), "RequestFullScreen");
+		init();
+		$('#fullscreen').hide();
+	}
+
+
+}
+
+		</script>
 	</body>
 </html>
